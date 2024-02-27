@@ -1,0 +1,17 @@
+{
+  "name": "omnaccount-contracts",
+  "version": "1.0.0",
+  "description": "AA plugin for cross-chain spending",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.20.1",
+    "hardhat-deploy": "^0.11.45"
+  },
+  "dependencies": {
+    "@across-protocol/sdk-v2": "^0.22.6",
+    "@safe-global/safe-contracts": "^1.4.1-build.0"
+  }
+}

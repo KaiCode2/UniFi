@@ -33,8 +33,6 @@ abstract contract AcrossHookReceiver is BridgeReceiver, IAcrossMessageHandler, H
         address relayer,
         bytes memory message
     ) external onlyBridge {
-
-        // TODO: Perform validation
         _afterTokensBridged(tokenSent, amount, message);
     }
 
@@ -44,8 +42,6 @@ abstract contract AcrossHookReceiver is BridgeReceiver, IAcrossMessageHandler, H
         address relayer,
         bytes memory message
     ) external onlyBridge {
-
-        // TODO: Perform validation
         _afterTokensBridged(tokenSent, amount, message);
     }
 

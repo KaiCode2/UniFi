@@ -17,6 +17,7 @@
     "typechain-types",
     "utils",
     "test",
+    "tasks",
     "hardhat.config.ts"
   ]
 }

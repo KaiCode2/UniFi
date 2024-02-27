@@ -7,9 +7,16 @@
     "type-check": "tsc"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.24.1",
+    "ethers": "^6.11.1",
     "next": "latest",
+    "query": "^0.2.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-query": "^3.39.3",
+    "viem": "2.x",
+    "wagmi": "^2.5.7",
+    "web3": "^4.5.0"
   },
   "devDependencies": {
     "@types/node": "^12.12.21",

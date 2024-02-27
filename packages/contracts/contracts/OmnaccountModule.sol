@@ -15,10 +15,10 @@ import {_packValidationData} from "@account-abstraction/contracts/core/Helpers.s
  * @author KDon.eth
  * @notice ERC-4337 abstract account module enabling cross-chain userOp execution powered by Across V3 Bridge and Safe
  */
-contract OmnaccountModule is BaseModule, HandlerContext, CompatibilityFallbackHandler, Errors {
+contract OmnaccountModule is BaseModule, CompatibilityFallbackHandler, Errors {
 
     
     constructor(address entrypoint, address spokePool) BaseModule(entrypoint) {
-        
+
     }
 }

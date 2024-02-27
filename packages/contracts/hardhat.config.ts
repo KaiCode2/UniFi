@@ -2,7 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-network-helpers";
-import "@nomicfoundation/hardhat-toolbox";
+// import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
 // import "hardhat-typechain"; // TODO: Readd
@@ -34,13 +34,9 @@ const config: HardhatUserConfig = {
       // accounts,
       saveDeployments: true,
       autoImpersonate: true,
-      deploy: ["deploy/local"],
-      tags: ["local"],
     },
     localhost: {
-      deploy: ["deploy/local"],
       url: "http://127.0.0.1:8545",
-      tags: ["local"],
     },
   },
   paths: {
@@ -49,6 +45,14 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  namedAccounts: {
+    spokePool: {
+      default: "0xaACB5245bc1A36dF875F76F6cb13369e60f60885", // TODO: Update
+    },
+    entrypoint: {
+      default: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419", // TODO: Update
+    },
+  }
   // typechain: {
   //   target: "ethers-v6",
   //   outDir: "./typechain",

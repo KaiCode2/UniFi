@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+import {HandlerContext} from "@safe-global/safe-contracts/contracts/handler/HandlerContext.sol";
 import {OmnaccountErrors as Errors} from "../interfaces/Errors.sol";
 
-abstract contract AccountEntry {
+abstract contract AccountEntry is HandlerContext {
     /**
      * @notice The address of the EntryPoint contract supported by this module.
      */

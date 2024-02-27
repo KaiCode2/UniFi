@@ -1,3 +1,4 @@
+import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-ethers";
@@ -5,8 +6,10 @@ import "@nomicfoundation/hardhat-network-helpers";
 // import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
+import "tsconfig-paths/register";
 // import "hardhat-typechain"; // TODO: Readd
 
+dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -34,9 +37,11 @@ const config: HardhatUserConfig = {
       // accounts,
       saveDeployments: true,
       autoImpersonate: true,
+      deploy: ["deploy/local"],
     },
     localhost: {
       url: "http://127.0.0.1:8545",
+      deploy: ["deploy/local"],
     },
   },
   paths: {
@@ -46,6 +51,8 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   namedAccounts: {
+    owner: 0,
+    deployer: 1,
     spokePool: {
       default: "0xaACB5245bc1A36dF875F76F6cb13369e60f60885", // TODO: Update
     },

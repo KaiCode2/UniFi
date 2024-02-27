@@ -11,4 +11,7 @@ interface OmnaccountErrors {
     /// @notice Reverted if attempting to execute userOp from invalid sender
     error InvalidEntryPoint();
 
+    /// @notice Reverted if address is not bridge
+    error InvalidBridge();
+
 }

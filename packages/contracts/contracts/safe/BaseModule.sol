@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {IAccount} from "@account-abstraction/contracts/interfaces/IAccount.sol";
+import {BridgeReceiver} from "../bridge/BridgeReceiver.sol";
 import {OmnaccountErrors as Errors} from "../interfaces/Errors.sol";
 import {AccountEntry} from "./AccountEntry.sol";
 import {ISafe} from "../interfaces/ISafe.sol";
@@ -9,7 +10,29 @@ import {UserOperation} from "@account-abstraction/contracts/interfaces/UserOpera
 import {_packValidationData} from "@account-abstraction/contracts/core/Helpers.sol";
 
 
-abstract contract BaseModule is IAccount, AccountEntry {
+abstract contract BaseModule is IAccount, BridgeReceiver, AccountEntry {
+
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  Bridge Receiver Implementation
+    //  ─────────────────────────────────────────────────────────────────────────────
+
+    function _afterTokensBridged(
+        address token,
+        uint256 amount,
+        bytes memory message
+    ) internal override {
+        // 1. Validate the message
+
+        // 2. Execute the message's calldata
+    }
+
+
+    //  ─────────────────────────────────────────────────────────────────────────────  \\
+
+    // TODO: Review below code tomorrow. Think it's unnecessary after reading some docs
+
+    //  ─────────────────────────────────────────────────────────────────────────────  \\
 
     /**
      * @notice The EIP-712 type-hash for the domain separator used for verifying Safe operation signatures.

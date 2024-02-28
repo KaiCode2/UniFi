@@ -4,21 +4,31 @@ import { getCreate2Address, keccak256, parseUnits, ZeroHash, AbiCoder } from "et
 
 import OmnaccountModule from "@/artifacts/contracts/OmnaccountModule.sol/OmnaccountModule.json";
 import Safe from "@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json"
-import SafeProxyFactory from "@safe-global//safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json"
+import SafeProxyFactory from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json"
 
 export default async function deploySingletons(deployer: SignerWithAddress, entrypoint: string, spokePool: string) {
   const factoryAddress = await deploySingletonFactory(deployer);
   const safeMastercopyAddress = await deploySingleton(factoryAddress, Safe.bytecode, deployer);
   const safeProxyFactoryAddress = await deploySingleton(factoryAddress, SafeProxyFactory.bytecode, deployer);
-  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address', 'address'], [entrypoint, spokePool]);
-  const omnaccountModuleBytecode = OmnaccountModule.bytecode + moduleConstructor.slice(2);
-  const omnaccountModuleAddress = await deploySingleton(factoryAddress, omnaccountModuleBytecode, deployer);
+  const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, entrypoint, spokePool, deployer);
 
   return {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
     omnaccountModuleAddress,
   }
+}
+
+export function getOmnaccountModuleBytecode(entrypoint: string, spokePool: string) {
+  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address', 'address'], [entrypoint, spokePool]);
+  return OmnaccountModule.bytecode + moduleConstructor.slice(2);
+}
+
+export async function deployModuleSingleton(factory: string, entrypoint: string, spokePool: string, deployer: SignerWithAddress) {
+  const omnaccountModuleBytecode = getOmnaccountModuleBytecode(entrypoint, spokePool);
+  const omnaccountModuleAddress = await deploySingleton(factory, omnaccountModuleBytecode, deployer);
+
+  return omnaccountModuleAddress;
 }
 
 async function deploySingletonFactory(signer: SignerWithAddress) {
@@ -37,7 +47,7 @@ async function deploySingletonFactory(signer: SignerWithAddress) {
   return address
 }
 
-async function deploySingleton(factory: string, bytecode: string, signer: SignerWithAddress) {
+export async function deploySingleton(factory: string, bytecode: string, signer: SignerWithAddress) {
   const salt = ZeroHash
 
   await signer.sendTransaction({

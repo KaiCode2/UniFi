@@ -2,7 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {IAccount} from "@account-abstraction/contracts/interfaces/IAccount.sol";
-import {BridgeReceiver} from "../bridge/BridgeReceiver.sol";
+import {AcrossHookReceiver} from "../bridge/AcrossHookReceiver.sol";
+import {CCIPHookReceiver} from "../bridge/CCIPHookReceiver.sol";
 import {OmnaccountErrors as Errors} from "../interfaces/Errors.sol";
 import {AccountEntry} from "./AccountEntry.sol";
 import {ISafe} from "../interfaces/ISafe.sol";
@@ -10,7 +11,7 @@ import {UserOperation} from "@account-abstraction/contracts/interfaces/UserOpera
 import {_packValidationData} from "@account-abstraction/contracts/core/Helpers.sol";
 
 
-abstract contract BaseModule is IAccount, BridgeReceiver, AccountEntry {
+abstract contract BaseModule is AcrossHookReceiver, AccountEntry { //, IAccount, CCIPHookReceiver {
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Structs
@@ -41,7 +42,7 @@ abstract contract BaseModule is IAccount, BridgeReceiver, AccountEntry {
     //  Constructor
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    constructor(address entryPoint) AccountEntry(entryPoint) {
+    constructor(address entryPoint, address spokePool) AccountEntry(entryPoint) AcrossHookReceiver(spokePool) {
         // no-op
     }
 
@@ -53,7 +54,7 @@ abstract contract BaseModule is IAccount, BridgeReceiver, AccountEntry {
         address token,
         uint256 amount,
         bytes memory message
-    ) internal override virtual {
+    ) internal virtual override {
         // 1. Validate the message
 
         // 2. Execute the message's calldata

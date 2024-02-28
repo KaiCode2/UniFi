@@ -3,7 +3,7 @@ import { AbiCoder, concat, getCreate2Address, Interface, keccak256, ZeroAddress,
 
 import Safe from '@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json'
 import SafeProxy from '@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json'
-import SafeProxyFactory from '@safe-global//safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json'
+import SafeProxyFactory from '@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json'
 
 export default async function deploySafeProxy(
   factory: string,
@@ -22,7 +22,7 @@ export default async function deploySafeProxy(
   return calculateProxyAddress(initializer, factory, mastercopy)
 }
 
-function calculateInitializer(owner: string): string {
+export function calculateInitializer(owner: string): string {
   const iface = new Interface(Safe.abi)
 
   const initializer = iface.encodeFunctionData('setup', [
@@ -39,7 +39,7 @@ function calculateInitializer(owner: string): string {
   return initializer
 }
 
-function calculateProxyAddress(initializer: string, factory: string, mastercopy: string): string {
+export function calculateProxyAddress(initializer: string, factory: string, mastercopy: string): string {
   const salt = keccak256(concat([keccak256(initializer), ZeroHash]))
 
   const deploymentData = concat([SafeProxy.bytecode, AbiCoder.defaultAbiCoder().encode(['address'], [mastercopy])])

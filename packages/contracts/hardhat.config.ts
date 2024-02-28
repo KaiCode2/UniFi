@@ -3,15 +3,16 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-network-helpers";
-// import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
 import "tsconfig-paths/register";
-// import "hardhat-typechain"; // TODO: Readd
+import { getSingletonFactoryInfo } from '@safe-global/safe-singleton-factory'
 
 dotenv.config();
 
 import "@/tasks";
+import { DeterministicDeploymentInfo } from "hardhat-deploy/types";
 
 const mnemonic =
   process.env.MNEMONIC ??
@@ -76,6 +77,8 @@ const config: HardhatUserConfig = {
     localhost: {
       url: "http://127.0.0.1:8545",
       accounts,
+      saveDeployments: true,
+      autoImpersonate: true,
       deploy: ["deploy/local"],
     },
     mumbai: {
@@ -107,18 +110,43 @@ const config: HardhatUserConfig = {
     owner: 0,
     deployer: 1,
     spokePool: {
-      default: "0xaACB5245bc1A36dF875F76F6cb13369e60f60885", // TODO: Update
+      default: 9, // TODO: Update
       sepolia: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
       arbitrumSepolia: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
     },
     entrypoint: {
-      default: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419", // TODO: Update
+      default: 8, // TODO: Update
     },
-  }
-  // typechain: {
-  //   target: "ethers-v6",
-  //   outDir: "./typechain",
-  // },
+    WETH: {
+      sepolia: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      // sepoliaBase: "",
+    }
+  },
+  deterministicDeployment,
+  typechain: {
+    target: "ethers-v6",
+    outDir: "./typechain-types",
+  },
 };
+
+function deterministicDeployment(network: string): DeterministicDeploymentInfo {
+  const info = getSingletonFactoryInfo(parseInt(network))
+  if (!info) {
+    throw new Error(`
+      Safe factory not found for network ${network}. You can request a new deployment at https://github.com/safe-global/safe-singleton-factory.
+      For more information, see https://github.com/safe-global/safe-contracts#replay-protection-eip-155
+    `)
+  }
+
+  const gasLimit = BigInt(info.gasLimit)
+  const gasPrice = BigInt(info.gasPrice)
+
+  return {
+    factory: info.address,
+    deployer: info.signerAddress,
+    funding: String(gasLimit * gasPrice),
+    signedTx: info.transaction,
+  }
+}
 
 export default config;

@@ -3,6 +3,7 @@
 // 3. Bridge tokens using APIs
 import React from "react";
 import ConnectWalletButton from "../components/connectWallet";
+import DeployVaultButton from "../components/vaultDeploy";
 
 const TransferFunds = () => {
   return (
@@ -10,6 +11,7 @@ const TransferFunds = () => {
       <header>
         <h1>Omnaccounts</h1>
         <ConnectWalletButton />
+        <DeployVaultButton />
         <nav>
           <a href="#" className="active">
             Home

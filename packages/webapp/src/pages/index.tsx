@@ -1,41 +1,21 @@
-// 1. build basic front end
-// 2.
-// 3.
-import { ethers } from "ethers";
-import { useMemo } from "react";
-import type { Chain, Client, Transport } from "viem";
-import { Config, useClient } from "wagmi";
+// 1. Deploy vault using safe sdk (supported by multiple chains)
+// 2. Add module to vault (approval and sign)
+// 3. Bridge tokens using APIs
+import React from "react";
+import ConnectWalletButton from "../components/connectWallet";
 
 const TransferFunds = () => {
   return (
     <>
       <header>
         <h1>Omnaccounts</h1>
+        <ConnectWalletButton />
         <nav>
           <a href="#" className="active">
             Home
           </a>
           <a href="#">Omniwallet</a>
           <a href="#">About Us</a>
-          <button
-            onClick={async (e) => {
-              e.preventDefault();
-              // @ts-expect-error
-              if (window.ethereum) {
-                console.log(ethers);
-                // @ts-expect-error
-                const provider = new ethers.BrowserProvider(window?.ethereum);
-
-                await provider.send("eth_requestAccounts", []);
-
-                const signer = provider.getSigner();
-              }
-            }}
-            className="connect-wallet-btn"
-            style={{ float: "right" }}
-          >
-            Connect Wallet
-          </button>
         </nav>
       </header>
       <form>
@@ -69,7 +49,6 @@ const TransferFunds = () => {
         <button
           onClick={(e) => {
             e.preventDefault();
-            // Do nothing, button is empty
           }}
           className="submit-btn"
         >
@@ -81,11 +60,3 @@ const TransferFunds = () => {
 };
 
 export default TransferFunds;
-
-// const IndexPage = () => {
-//   return (
-
-//   );
-// };
-
-// export default IndexPage;

@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
+import { DeterministicDeploymentInfo } from "hardhat-deploy/types";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-network-helpers";
@@ -12,7 +13,6 @@ import { getSingletonFactoryInfo } from '@safe-global/safe-singleton-factory'
 dotenv.config();
 
 import "@/tasks";
-import { DeterministicDeploymentInfo } from "hardhat-deploy/types";
 
 const mnemonic =
   process.env.MNEMONIC ??
@@ -73,6 +73,9 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       autoImpersonate: true,
       deploy: ["deploy/local"],
+      forking: {
+        url: sepoliaRpcUrl,
+      }
     },
     localhost: {
       url: "http://127.0.0.1:8545",
@@ -110,7 +113,7 @@ const config: HardhatUserConfig = {
     owner: 0,
     deployer: 1,
     spokePool: {
-      default: 9, // TODO: Update
+      default: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
       sepolia: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
       arbitrumSepolia: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
     },

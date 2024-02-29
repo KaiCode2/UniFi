@@ -3,6 +3,11 @@ import Safe, { EthersAdapter, SafeFactory } from "@safe-global/protocol-kit";
 
 import { useContext, useState } from "react";
 import { SignerContext } from "../Context/Signer";
+import { Button } from "@mantine/core";
+import { chainNames } from "../utilities/chains";
+import ConnectWalletButton, {
+  connectWallet,
+} from "../components/connectWallet";
 
 import { SafeTransaction } from "@safe-global/safe-core-sdk-types";
 // import { SafeAccountConfig } from "@safe-global/protocol-kit";
@@ -71,22 +76,42 @@ const DeployVaultButton = () => {
 
   return (
     <>
-      <button onClick={deployVault} disabled={!selectedChain || loading}>
+      <Button
+        style={{
+          borderRadius: "100px",
+        }}
+        variant="light"
+        color="rgba(255, 255, 255, 1)"
+        onClick={deployVault}
+        disabled={!selectedChain || loading}
+      >
         {loading ? "Deploying..." : "Deploy Vault"}
-      </button>
+      </Button>
       {error && <p>{error}</p>}
       {selectedChain === null && (
         <div>
           <p>Select chain to deploy vault:</p>
-          {chainIds.map((chainId) => (
-            <button
-              key={chainId}
-              onClick={() => handleChainSelect(chainId)}
-              disabled={loading}
-            >
-              Chain {chainId}
-            </button>
-          ))}
+          {chainIds.map(
+            (chainId) => (
+              console.log(chainNames),
+              (
+                <Button
+                  style={{
+                    display: "inline-block",
+                    marginRight: "10px",
+                    borderRadius: "100px",
+                  }}
+                  variant="light"
+                  color="rgba(255, 255, 255, 1)"
+                  key={chainId}
+                  onClick={() => handleChainSelect(chainId)}
+                  disabled={!signer || loading}
+                >
+                  Chain: {chainNames[chainId]}
+                </Button>
+              )
+            )
+          )}
         </div>
       )}
     </>

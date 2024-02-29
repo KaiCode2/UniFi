@@ -59,7 +59,7 @@ const ConnectWalletButton = () => {
         }
       }}
       className="connect-button"
-      style={{ float: "right" }}
+      style={{ float: "right", borderRadius: "100px" }}
     >
       Connect Wallet
     </button>

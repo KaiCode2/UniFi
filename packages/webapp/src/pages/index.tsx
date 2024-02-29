@@ -8,21 +8,78 @@ import DeployVaultButton from "../components/vaultDeploy";
 const TransferFunds = () => {
   return (
     <>
+      <style>{`body { background-color: #232D3F; }`}</style>
       <header>
-        <h1>Omnaccounts</h1>
+        <h1
+          style={{
+            fontFamily: "American Typewriter, serif",
+          }}
+        >
+          Omnaccounts
+        </h1>
+        <div
+          style={{
+            textAlign: "right",
+            fontFamily: "'American Typewriter', serif",
+            color: "white",
+            marginTop: "-35px",
+          }}
+        >
+          <div
+            style={{
+              transform: "translateX(-200px)",
+              display: "inline-block",
+              verticalAlign: "top",
+            }}
+          >
+            <a
+              href="#"
+              style={{
+                margin: "0 20px",
+                textDecoration: "none",
+                color: "white",
+              }}
+              className="active"
+            >
+              Home
+            </a>
+            <a
+              href="#"
+              style={{
+                margin: "0 20px",
+                textDecoration: "none",
+                color: "white",
+              }}
+            >
+              Omniwallet
+            </a>
+            <a
+              href="#"
+              style={{
+                margin: "0 20px",
+                textDecoration: "none",
+                color: "white",
+              }}
+            >
+              About Us
+            </a>
+          </div>
+        </div>
         <ConnectWalletButton />
+
         <DeployVaultButton />
-        <nav>
-          <a href="#" className="active">
-            Home
-          </a>
-          <a href="#">Omniwallet</a>
-          <a href="#">About Us</a>
-        </nav>
       </header>
       <form>
         <div>
-          <label htmlFor="amount1">Amount 1:</label>
+          <label
+            style={{
+              color: "white",
+              fontFamily: "'American Typewriter', serif",
+            }}
+            htmlFor="amount1"
+          >
+            Amount 1:
+          </label>
           <input
             type="number"
             id="amount1"
@@ -36,7 +93,15 @@ const TransferFunds = () => {
           />
         </div>
         <div>
-          <label htmlFor="amount2">Amount 2:</label>
+          <label
+            style={{
+              color: "white",
+              fontFamily: "'American Typewriter', serif",
+            }}
+            htmlFor="amount2"
+          >
+            Amount 2:
+          </label>
           <input
             type="number"
             id="amount2"
@@ -49,6 +114,9 @@ const TransferFunds = () => {
           />
         </div>
         <button
+          style={{
+            borderRadius: "100px",
+          }}
           onClick={(e) => {
             e.preventDefault();
           }}

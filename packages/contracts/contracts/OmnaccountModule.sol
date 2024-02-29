@@ -22,12 +22,7 @@ contract OmnaccountModule is
     Errors
     //, CCIPHookReceiver // TODO: Enable CCIP
 {
-    constructor(
-        address entrypoint,
-        address spokePool
-    ) BaseModule(entrypoint, spokePool) {
+    constructor(address _spokePool) BaseModule(_spokePool) {
         // no-op
     }
-
-    
 }

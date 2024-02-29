@@ -6,11 +6,11 @@ import OmnaccountModule from "@/artifacts/contracts/OmnaccountModule.sol/Omnacco
 import Safe from "@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json"
 import SafeProxyFactory from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json"
 
-export default async function deploySingletons(deployer: SignerWithAddress, entrypoint: string, spokePool: string) {
+export default async function deploySingletons(deployer: SignerWithAddress, spokePool: string) {
   const factoryAddress = await deploySingletonFactory(deployer);
   const safeMastercopyAddress = await deploySingleton(factoryAddress, Safe.bytecode, deployer);
   const safeProxyFactoryAddress = await deploySingleton(factoryAddress, SafeProxyFactory.bytecode, deployer);
-  const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, entrypoint, spokePool, deployer);
+  const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, spokePool, deployer);
 
   return {
     safeMastercopyAddress,
@@ -19,13 +19,13 @@ export default async function deploySingletons(deployer: SignerWithAddress, entr
   }
 }
 
-export function getOmnaccountModuleBytecode(entrypoint: string, spokePool: string) {
-  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address', 'address'], [entrypoint, spokePool]);
+export function getOmnaccountModuleBytecode(spokePool: string) {
+  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address'], [spokePool]);
   return OmnaccountModule.bytecode + moduleConstructor.slice(2);
 }
 
-export async function deployModuleSingleton(factory: string, entrypoint: string, spokePool: string, deployer: SignerWithAddress) {
-  const omnaccountModuleBytecode = getOmnaccountModuleBytecode(entrypoint, spokePool);
+export async function deployModuleSingleton(factory: string, spokePool: string, deployer: SignerWithAddress) {
+  const omnaccountModuleBytecode = getOmnaccountModuleBytecode(spokePool);
   const omnaccountModuleAddress = await deploySingleton(factory, omnaccountModuleBytecode, deployer);
 
   return omnaccountModuleAddress;

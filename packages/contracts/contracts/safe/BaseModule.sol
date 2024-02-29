@@ -6,13 +6,13 @@ import {AcrossHookReceiver} from "../bridge/AcrossHookReceiver.sol";
 import {CCIPHookReceiver} from "../bridge/CCIPHookReceiver.sol";
 import {AcrossSender} from "../bridge/AcrossSender.sol";
 import {OmnaccountErrors as Errors} from "../interfaces/Errors.sol";
-import {AccountEntry} from "./AccountEntry.sol";
+// import {AccountEntry} from "./AccountEntry.sol";
 import {ISafe} from "../interfaces/ISafe.sol";
 import {UserOperation} from "@account-abstraction/contracts/interfaces/UserOperation.sol";
 import {_packValidationData} from "@account-abstraction/contracts/core/Helpers.sol";
 
 
-abstract contract BaseModule is AcrossHookReceiver, AccountEntry, AcrossSender { //, IAccount, CCIPHookReceiver {
+abstract contract BaseModule is AcrossHookReceiver, AcrossSender { //, IAccount, CCIPHookReceiver, AccountEntry {
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Structs
@@ -43,7 +43,7 @@ abstract contract BaseModule is AcrossHookReceiver, AccountEntry, AcrossSender {
     //  Constructor
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    constructor(address entryPoint, address spokePool) AccountEntry(entryPoint) AcrossSender(spokePool) AcrossHookReceiver(spokePool) {
+    constructor(address spokePool) AcrossSender(spokePool) AcrossHookReceiver(spokePool) {
         // no-op
     }
 

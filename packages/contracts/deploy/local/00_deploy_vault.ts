@@ -9,7 +9,7 @@ const deployVault: DeployFunction = async function ({
   ethers,
   getNamedAccounts,
 }: HardhatRuntimeEnvironment) {
-  const { owner, deployer, entrypoint, spokePool } = await getNamedAccounts();
+  const { owner, deployer, spokePool } = await getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
   const ownerSigner = await ethers.getSigner(owner);
 
@@ -17,7 +17,7 @@ const deployVault: DeployFunction = async function ({
     safeProxyFactoryAddress,
     safeMastercopyAddress,
     omnaccountModuleAddress,
-  } = await deploySingletons(deployerSigner, entrypoint, spokePool);
+  } = await deploySingletons(deployerSigner, spokePool);
 
   const safeAddress = await deploySafeProxy(
     safeProxyFactoryAddress,

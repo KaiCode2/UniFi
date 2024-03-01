@@ -85,6 +85,7 @@ abstract contract BaseModule is AcrossSender, BasePluginWithEventMetadata, IFall
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Plugin
     //  ─────────────────────────────────────────────────────────────────────────────
+    
     function requiresPermissions() external view returns (uint8 permissions) {
         return 4; // Requires DELEGATE_CALL permission
     }

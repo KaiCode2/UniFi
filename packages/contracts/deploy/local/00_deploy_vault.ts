@@ -62,7 +62,21 @@ const deployVault: DeployFunction = async function ({
     ownerSigner
   );
 
+  await execSafeTransaction(
+    safe,
+    await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+    ownerSigner
+  );
+
   console.log("Vault deployed to:", safeAddress);
+
+  await deployments.save("ISafe", {
+    address: safeAddress,
+    abi: OmnaccountFallback.abi,
+    // linkedData: {
+    //   [`${owner}_vault`]: safeAddress,
+    // },
+  });
 };
 deployVault.tags = ["Vault"];
 export default deployVault;

@@ -90,18 +90,21 @@ const config: HardhatUserConfig = {
       accounts,
       saveDeployments: true,
       deploy: ["deploy/public"],
+      live: true,
     },
     sepolia: {
       url: sepoliaRpcUrl,
       accounts,
       saveDeployments: true,
       deploy: ["deploy/public"],
+      live: true,
     },
     arbitrumSepolia: {
       url: arbSepoliaRpcUrl,
       accounts,
       saveDeployments: true,
       deploy: ["deploy/public"],
+      live: true,
     },
   },
   paths: {
@@ -124,6 +127,7 @@ const config: HardhatUserConfig = {
     WETH: {
       default: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
       sepolia: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+      arbitrumSepolia: "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
       // sepoliaBase: "",
     },
     relayer: 9,

@@ -17,12 +17,18 @@ import SafeProxyFactory from "@safe-global/safe-contracts/build/artifacts/contra
 import type { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types";
 import { getCreate2Address, keccak256, ZeroHash } from "ethers";
 import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces/ISafe__factory";
-import { OmnaccountModule__factory } from "@/typechain-types";
+import { OmnaccountModule__factory, V3SpokePoolInterface__factory } from "@/typechain-types";
 import execSafeTransaction from "@/deploy/utils/exec_transaction";
-import { Constants } from "@/utils";
+import { Constants, delay } from "@/utils";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { ContractNetworksConfig, EthersAdapter } from "@safe-global/protocol-kit";
-import { getMultiSendCallOnlyDeployment, getMultiSendDeployment } from "@safe-global/safe-deployments";
+import {
+  ContractNetworksConfig,
+  EthersAdapter,
+} from "@safe-global/protocol-kit";
+import {
+  getMultiSendCallOnlyDeployment,
+  getMultiSendDeployment,
+} from "@safe-global/safe-deployments";
 
 task("safe:make", "Makes a new safe")
   .addOptionalParam("signer", "Signer of the new safe")
@@ -30,7 +36,7 @@ task("safe:make", "Makes a new safe")
   .setAction(
     async (
       { signer }: TaskArguments,
-      { getNamedAccounts, ethers, deployments }: HardhatRuntimeEnvironment
+      { getNamedAccounts, ethers, deployments, network }: HardhatRuntimeEnvironment
     ) => {
       const { spokePool, owner } = await getNamedAccounts();
       const ownerSigner = await ethers.getSigner(owner);
@@ -77,13 +83,16 @@ task("safe:make", "Makes a new safe")
       try {
         const deployedCode = await ownerSigner.provider.getCode(safeAddress);
         if (deployedCode === "0x") {
+          console.log(`Safe at ${safeAddress} not deployed. Deploying...`);
           // Safe not deployed
           await deploySafeProxy(
             safeProxyFactoryAddress,
             safeMastercopyAddress,
             owner,
-            ownerSigner
+            ownerSigner,
+            omnaccountFallbackAddress
           );
+          if (network.live) await delay(5_000);
         }
       } catch {}
 
@@ -91,16 +100,28 @@ task("safe:make", "Makes a new safe")
 
       const safe = ISafe__factory.connect(safeAddress, ownerSigner);
 
-      // TODO: Check if module is already enabled
-      await execSafeTransaction(
-        safe,
-        await safe.enableModule.populateTransaction(omnaccountModuleAddress),
-        ownerSigner
-      );
+      if (!(await safe.isModuleEnabled(omnaccountModuleAddress))) {
+        console.log("Enabling bridge module...");
+        await execSafeTransaction(
+          safe,
+          await safe.enableModule.populateTransaction(omnaccountModuleAddress),
+          ownerSigner
+        );
+        if (network.live) await delay(5_000);
+      }
+      if (!(await safe.isModuleEnabled(omnaccountFallbackAddress))) {
+        console.log("Enabling fallback module...");
+        await execSafeTransaction(
+          safe,
+          await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+          ownerSigner
+        );
+        if (network.live) await delay(5_000);
+      }
 
-      console.log("Module enabled!");
+      console.log("Modules enabled!");
 
-      await deployments.save(`Vault:${owner}`, {
+      await deployments.save("ISafe", {
         address: safeAddress,
         abi: Safe.abi,
       });
@@ -154,6 +175,91 @@ task("safe:sign", "Signs a safe transaction")
     }
   );
 
+task("safe:bridge", "Executes a bridge transaction")
+    .addPositionalParam("tokenIn", "Token address to execute once received")
+    .addPositionalParam("tokenOut", "Token address to execute once received")
+    .addPositionalParam("amountIn", "Amount to send in 18 decimal format")
+    .addPositionalParam("amountOut", "Amount to receive in 18 decimal format")
+    .addPositionalParam("chainId", "Chain ID to send to")
+    .addOptionalParam("recipient", "address to send to")
+    .addOptionalParam("message", "encoded message to include")
+    .setAction(async (
+      {tokenIn, tokenOut, amountIn, amountOut, chainId: destinationChainId, recipient, message}: TaskArguments,
+      {
+        getNamedAccounts,
+        ethers,
+        deployments,
+        network,
+      }: HardhatRuntimeEnvironment
+    ) => {
+      const { owner, spokePool, ...namedAccounts  } = await getNamedAccounts();
+      const ownerSigner = await ethers.getSigner(owner);
+
+      const moduleDeployment = await deployments.get(
+        Constants.Contracts.OmnaccountModule
+      );
+      const vaultDeployment = await deployments.get("ISafe");
+      const spokePoolContract = V3SpokePoolInterface__factory.connect(spokePool, ownerSigner);
+      const chainId = await ownerSigner.provider
+        .getNetwork()
+        .then(({ chainId }) => chainId);
+
+      const inputTokenAddress = ethers.isAddress(tokenIn) ? tokenIn : namedAccounts[tokenIn];
+
+      const calldata = await spokePoolContract.depositV3.populateTransaction(
+        vaultDeployment.address,
+        recipient ?? vaultDeployment.address,
+        inputTokenAddress,
+        tokenOut,
+        ethers.parseUnits(amountIn, 18),
+        ethers.parseUnits(amountOut, 18),
+        parseInt(destinationChainId),
+        ethers.ZeroAddress,
+        Math.ceil(new Date().getTime() / 1_000),
+        Math.ceil(new Date().getTime() / 1_000) + 86_400,
+        0,
+        message ?? "0x"
+      );
+
+      const ethAdapter = new EthersAdapter({
+        ethers,
+        signerOrProvider: ownerSigner,
+      });
+      const multiSendAddress =
+        getMultiSendDeployment({ network: chainId.toString() }) ??
+        "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526";
+      const multiSendCallOnlyAddress =
+        getMultiSendCallOnlyDeployment({ network: chainId.toString() }) ??
+        "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
+      const contractNetworks: ContractNetworksConfig = {
+        // @ts-ignore
+        [chainId]: {
+          multiSendAddress,
+          multiSendCallOnlyAddress,
+        },
+      };
+      const connection = await SafeSdk.default.create({
+        ethAdapter,
+        safeAddress: vaultDeployment.address,
+        contractNetworks,
+      });
+      let safeTx = await connection.createTransaction({
+        transactions: [
+          {
+            to: moduleDeployment.address,
+            value: "0",
+            data: calldata.data,
+          },
+        ],
+      });
+      safeTx = await connection.signTransaction(safeTx);
+      // await safeTx.addSignature()
+      const safeTxResponse = await connection.executeTransaction(safeTx);
+      const response = await safeTxResponse.transactionResponse?.wait();
+
+      console.log(response?.logs)
+    });
+
 task("safe:addFallback", "Adds a new token fallback handler")
   .addPositionalParam("token", "Token address to execute once received")
   .addPositionalParam("target", "address to call")
@@ -162,7 +268,12 @@ task("safe:addFallback", "Adds a new token fallback handler")
   .setAction(
     async (
       { token, target, selector, data }: TaskArguments,
-      { getNamedAccounts, ethers, deployments, network }: HardhatRuntimeEnvironment
+      {
+        getNamedAccounts,
+        ethers,
+        deployments,
+        network,
+      }: HardhatRuntimeEnvironment
     ) => {
       const { owner, spokePool } = await getNamedAccounts();
       let ownerSigner = await ethers.getSigner(owner);
@@ -200,20 +311,23 @@ task("safe:addFallback", "Adds a new token fallback handler")
         }
       );
 
-
       const ethAdapter = new EthersAdapter({
         ethers,
         signerOrProvider: ownerSigner,
       });
-      const multiSendAddress = getMultiSendDeployment({ network: chainId.toString() }) ?? "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526"
-      const multiSendCallOnlyAddress = getMultiSendCallOnlyDeployment({ network: chainId.toString() }) ?? "0x9641d764fc13c8B624c04430C7356C1C7C8102e2"
+      const multiSendAddress =
+        getMultiSendDeployment({ network: chainId.toString() }) ??
+        "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526";
+      const multiSendCallOnlyAddress =
+        getMultiSendCallOnlyDeployment({ network: chainId.toString() }) ??
+        "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
       const contractNetworks: ContractNetworksConfig = {
         // @ts-ignore
         [chainId]: {
           multiSendAddress,
-          multiSendCallOnlyAddress
-        }
-      }
+          multiSendCallOnlyAddress,
+        },
+      };
       const connection = await SafeSdk.default.create({
         ethAdapter,
         safeAddress: vaultDeployment.address,
@@ -228,11 +342,9 @@ task("safe:addFallback", "Adds a new token fallback handler")
           },
         ],
       });
-      safeTx = await connection.signTransaction(safeTx)
+      safeTx = await connection.signTransaction(safeTx);
       // await safeTx.addSignature()
-      const safeTxResponse = await connection.executeTransaction(
-        safeTx,
-      );
+      const safeTxResponse = await connection.executeTransaction(safeTx);
       const response = await safeTxResponse.transactionResponse?.wait();
 
       console.log(response?.logs);
@@ -272,7 +384,6 @@ task("safe:addFallback", "Adds a new token fallback handler")
       //     addressIndex: 0,
       //     amountIndex: 0,
       //   }),
-      
 
       // {
       //   to: moduleDeployment.address,

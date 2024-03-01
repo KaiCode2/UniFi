@@ -3,7 +3,7 @@ import {
   getSingletonFactoryInfo,
   SingletonFactoryInfo,
 } from "@safe-global/safe-singleton-factory";
-import { getOmnaccountModuleBytecode } from "@/deploy/utils/deploy_singleton";
+import { getOmnaccountFallbackBytecode, getOmnaccountModuleBytecode } from "@/deploy/utils/deploy_singleton";
 import deploySafeProxy, {
   calculateInitializer,
   calculateProxyAddress,
@@ -14,6 +14,7 @@ import type { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types";
 import { getCreate2Address, keccak256, ZeroHash } from "ethers";
 import { ISafe__factory, OmnaccountModule__factory } from "@/typechain-types";
 import execSafeTransaction from "@/deploy/utils/exec_transaction";
+import { Constants } from "@/utils";
 
 task("safe:make", "Makes a new safe")
   .addOptionalParam("signer", "Signer of the new safe")
@@ -21,7 +22,7 @@ task("safe:make", "Makes a new safe")
   .setAction(
     async (
       { signer }: TaskArguments,
-      { getNamedAccounts, ethers }: HardhatRuntimeEnvironment
+      { getNamedAccounts, ethers, deployments }: HardhatRuntimeEnvironment
     ) => {
       const { spokePool, entrypoint, owner } = await getNamedAccounts();
       const ownerSigner = await ethers.getSigner(owner);
@@ -33,22 +34,30 @@ task("safe:make", "Makes a new safe")
 
       console.log(factoryAddress);
 
+      let { address: omnaccountModuleAddress } = await deployments.get(Constants.Contracts.OmnaccountModule);
+      let { address: omnaccountFallbackAddress } = await deployments.get(Constants.Contracts.OmnaccountFallback);
+
       const {
         safeMastercopyAddress,
         safeProxyFactoryAddress,
-        omnaccountModuleAddress,
-      } = await getAddresses(factoryAddress, entrypoint, spokePool);
+        omnaccountModuleAddress: predictedOmnaccountModuleAddress,
+        omnaccountFallbackAddress: predictedOmnaccountFallbackAddress,
+      } = await getAddresses(factoryAddress, spokePool);
+
+      omnaccountModuleAddress = omnaccountModuleAddress ?? predictedOmnaccountModuleAddress;
+      omnaccountFallbackAddress = omnaccountFallbackAddress ?? predictedOmnaccountFallbackAddress;
 
       // TODO: Check these addresses exist
 
       console.log(`Safe mastercopy: ${safeMastercopyAddress}`);
       console.log(`Safe proxy factory: ${safeProxyFactoryAddress}`);
       console.log(`Omnaccount module: ${omnaccountModuleAddress}`);
+      console.log(`Omnaccount fallback: ${omnaccountFallbackAddress}`);
 
       const safeAddress = calculateProxyAddress(
-        calculateInitializer(owner),
+        calculateInitializer(owner, omnaccountFallbackAddress),
         safeProxyFactoryAddress,
-        safeMastercopyAddress
+        safeMastercopyAddress,
       );
 
       try {
@@ -88,7 +97,7 @@ task("safe:sign", "Signs a safe transaction")
       args: TaskArguments,
       { getNamedAccounts, ethers }: HardhatRuntimeEnvironment
     ) => {
-      const { owner, entrypoint, spokePool } = await getNamedAccounts();
+      const { owner, spokePool } = await getNamedAccounts();
       const ownerSigner = await ethers.getSigner(owner);
 
       const { chainId } = await ownerSigner.provider.getNetwork();
@@ -99,7 +108,7 @@ task("safe:sign", "Signs a safe transaction")
         safeMastercopyAddress,
         safeProxyFactoryAddress,
         omnaccountModuleAddress,
-      } = await getAddresses(factoryAddress, entrypoint, spokePool);
+      } = await getAddresses(factoryAddress, spokePool);
 
       const safeAddress = calculateProxyAddress(
         calculateInitializer(owner),
@@ -133,7 +142,6 @@ task("safe:sign", "Signs a safe transaction")
 
 async function getAddresses(
   factory: string,
-  entrypoint: string,
   spokePool: string
 ) {
   const safeMastercopyAddress = getCreate2Address(
@@ -149,12 +157,18 @@ async function getAddresses(
   const omnaccountModuleAddress = getCreate2Address(
     factory,
     ZeroHash,
-    keccak256(getOmnaccountModuleBytecode(entrypoint, spokePool))
+    keccak256(getOmnaccountModuleBytecode(spokePool))
+  );
+  const omnaccountFallbackAddress = getCreate2Address(
+    factory,
+    ZeroHash,
+    keccak256(getOmnaccountFallbackBytecode(spokePool))
   );
 
   return {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
     omnaccountModuleAddress,
+    omnaccountFallbackAddress,
   };
 }

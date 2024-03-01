@@ -9,16 +9,14 @@ async function main() {
   const { owner, deployer, spokePool, relayer, WETH } =
     await getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
-  const ownerSigner = await ethers.getSigner(owner);
 
   const {
     safeProxyFactoryAddress,
     safeMastercopyAddress,
-    omnaccountModuleAddress,
     omnaccountFallbackAddress,
   } = await deploySingletons(deployerSigner, spokePool);
 
-  // TODO: deploy with module and fallback set
+  // TODO: deploy with module
   const safeAddress = await deploySafeProxy(
     safeProxyFactoryAddress,
     safeMastercopyAddress,
@@ -26,10 +24,8 @@ async function main() {
     deployerSigner,
     omnaccountFallbackAddress,
   );
-
   let safe = OmnaccountFallback__factory.connect(safeAddress);
 
-  
   await impersonateAccount(spokePool);
   const spokePoolSigner = await ethers.getSigner(spokePool);
   safe = safe.connect(spokePoolSigner);

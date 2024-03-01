@@ -3,11 +3,15 @@ import { DeployFunction } from "hardhat-deploy/types";
 import deploySafeProxy from "../utils/deploy_safe_proxy";
 import deploySingletons from "../utils/deploy_singleton";
 import execSafeTransaction from "../utils/exec_transaction";
+import OmnaccountModule from "@/artifacts/contracts/OmnaccountModule.sol/OmnaccountModule.json";
+import OmnaccountFallback from "@/artifacts/contracts/OmnaccountFallback.sol/OmnaccountFallback.json";
 import { ISafe__factory } from "@/typechain-types";
+import { Constants } from "@/utils";
 
 const deployVault: DeployFunction = async function ({
   ethers,
   getNamedAccounts,
+  deployments,
 }: HardhatRuntimeEnvironment) {
   const { owner, deployer, spokePool } = await getNamedAccounts();
   const deployerSigner = await ethers.getSigner(deployer);
@@ -19,6 +23,16 @@ const deployVault: DeployFunction = async function ({
     omnaccountModuleAddress,
     omnaccountFallbackAddress,
   } = await deploySingletons(deployerSigner, spokePool);
+
+  await deployments.save(Constants.Contracts.OmnaccountModule, {
+    address: omnaccountModuleAddress,
+    abi: OmnaccountModule.abi,
+  });
+  
+  await deployments.save(Constants.Contracts.OmnaccountFallback, {
+    address: omnaccountFallbackAddress,
+    abi: OmnaccountFallback.abi,
+  });
 
   // TODO: deploy with module and fallback set
   const safeAddress = await deploySafeProxy(

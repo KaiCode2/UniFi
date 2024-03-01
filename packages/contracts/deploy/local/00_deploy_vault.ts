@@ -5,7 +5,7 @@ import deploySingletons from "../utils/deploy_singleton";
 import execSafeTransaction from "../utils/exec_transaction";
 import OmnaccountModule from "@/artifacts/contracts/OmnaccountModule.sol/OmnaccountModule.json";
 import OmnaccountFallback from "@/artifacts/contracts/OmnaccountFallback.sol/OmnaccountFallback.json";
-import { ISafe__factory } from "@/typechain-types";
+import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces/ISafe__factory";
 import { Constants } from "@/utils";
 
 const deployVault: DeployFunction = async function ({
@@ -28,7 +28,7 @@ const deployVault: DeployFunction = async function ({
     address: omnaccountModuleAddress,
     abi: OmnaccountModule.abi,
   });
-  
+
   await deployments.save(Constants.Contracts.OmnaccountFallback, {
     address: omnaccountFallbackAddress,
     abi: OmnaccountFallback.abi,

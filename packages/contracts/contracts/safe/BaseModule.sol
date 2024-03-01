@@ -12,54 +12,13 @@ import {UserOperation} from "@account-abstraction/contracts/interfaces/UserOpera
 import {_packValidationData} from "@account-abstraction/contracts/core/Helpers.sol";
 
 
-abstract contract BaseModule is AcrossHookReceiver, AcrossSender { //, IAccount, CCIPHookReceiver, AccountEntry {
-
-    //  ─────────────────────────────────────────────────────────────────────────────
-    //  Structs
-    //  ─────────────────────────────────────────────────────────────────────────────
-
-    struct BridgeFallback {
-        address target;
-        bytes4 selector;
-        bytes data;
-        uint96 addressIndex;
-        uint96 amountIndex;
-    }
-
-    //  ─────────────────────────────────────────────────────────────────────────────
-    //  Events
-    //  ─────────────────────────────────────────────────────────────────────────────
-
-    event TokensBridged(address indexed token, uint256 amount);
-
-    //  ─────────────────────────────────────────────────────────────────────────────
-    //  Fields
-    //  ─────────────────────────────────────────────────────────────────────────────
-
-    /// @notice Maps token address to default fallback behavior
-    mapping(address token => BridgeFallback fallbackData) public bridgeFallbacks;
+abstract contract BaseModule is AcrossSender { //, IAccount, AccountEntry {
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Constructor
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    constructor(address spokePool) AcrossSender(spokePool) AcrossHookReceiver(spokePool) {
+    constructor(address spokePool) AcrossSender(spokePool) {
         // no-op
-    }
-
-    //  ─────────────────────────────────────────────────────────────────────────────
-    //  Bridge Receiver Implementation
-    //  ─────────────────────────────────────────────────────────────────────────────
-
-    function _afterTokensBridged(
-        address token,
-        uint256 amount,
-        bytes memory message
-    ) internal virtual override {
-        // 1. Validate the message
-
-        // 2. Execute the message's calldata
-
-        emit TokensBridged(token, amount);
     }
 }

@@ -17,20 +17,34 @@ const deployVault: DeployFunction = async function ({
     safeProxyFactoryAddress,
     safeMastercopyAddress,
     omnaccountModuleAddress,
+    omnaccountFallbackAddress,
   } = await deploySingletons(deployerSigner, spokePool);
 
+  // TODO: deploy with module and fallback set
   const safeAddress = await deploySafeProxy(
     safeProxyFactoryAddress,
     safeMastercopyAddress,
     owner,
-    deployerSigner
+    deployerSigner,
+    omnaccountFallbackAddress,
+    // TODO: add module during creation
   );
 
   const safe = ISafe__factory.connect(safeAddress, ownerSigner);
 
+  const isModuleEnabled = await safe.isModuleEnabled(omnaccountModuleAddress);
+  if (!isModuleEnabled) {
+    await execSafeTransaction(
+      safe,
+      await safe.enableModule.populateTransaction(omnaccountModuleAddress),
+      ownerSigner
+    );
+  }
+
+  // TODO: Check if fallback handler is already set
   await execSafeTransaction(
     safe,
-    await safe.enableModule.populateTransaction(omnaccountModuleAddress),
+    await safe.setFallbackHandler.populateTransaction(omnaccountFallbackAddress),
     ownerSigner
   );
 

@@ -40,6 +40,12 @@ interface ISafe {
         bytes memory signatures
     ) external payable returns (bool success);
 
+    function disableModule(address prevModule, address module) external;
+
+    function isModuleEnabled(address module) external view returns (bool);
+
+    function setFallbackHandler(address handler) external;
+
     /**
      * @dev Checks whether the signature provided is valid for the provided data, hash. Will revert otherwise.
      * @param dataHash Hash of the data (could be either a message hash or transaction hash)

@@ -7,8 +7,18 @@
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
     },
-  }
+  },
+  "include": [
+    "deploy",
+    "typechain-types",
+    "utils",
+    "test",
+    "tasks",
+    "scripts",
+    "hardhat.config.ts"
+  ]
 }

@@ -1,0 +1,371 @@
+import { task } from "hardhat/config";
+import {
+  getSingletonFactoryInfo,
+  SingletonFactoryInfo,
+} from "@safe-global/safe-singleton-factory";
+import {
+  getOmnaccountFallbackBytecode,
+  getOmnaccountModuleBytecode,
+} from "@/deploy/utils/deploy_singleton";
+import deploySafeProxy, {
+  calculateInitializer,
+  calculateProxyAddress,
+} from "@/deploy/utils/deploy_safe_proxy";
+import * as SafeSdk from "@safe-global/protocol-kit";
+import Safe from "@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json";
+import SafeProxyFactory from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json";
+import type { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types";
+import { getCreate2Address, keccak256, ZeroHash } from "ethers";
+import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces/ISafe__factory";
+import { OmnaccountModule__factory } from "@/typechain-types";
+import execSafeTransaction from "@/deploy/utils/exec_transaction";
+import { Constants } from "@/utils";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { ContractNetworksConfig, EthersAdapter } from "@safe-global/protocol-kit";
+import { getMultiSendCallOnlyDeployment, getMultiSendDeployment } from "@safe-global/safe-deployments";
+
+task("safe:make", "Makes a new safe")
+  .addOptionalParam("signer", "Signer of the new safe")
+  .addOptionalParam("salt", "safe generation salt")
+  .setAction(
+    async (
+      { signer }: TaskArguments,
+      { getNamedAccounts, ethers, deployments }: HardhatRuntimeEnvironment
+    ) => {
+      const { spokePool, owner } = await getNamedAccounts();
+      const ownerSigner = await ethers.getSigner(owner);
+
+      const { chainId } = await ownerSigner.provider.getNetwork();
+      const { address: factoryAddress } = getSingletonFactoryInfo(
+        Number(chainId)
+      ) as SingletonFactoryInfo;
+
+      console.log(factoryAddress);
+
+      let { address: omnaccountModuleAddress } = await deployments.get(
+        Constants.Contracts.OmnaccountModule
+      );
+      let { address: omnaccountFallbackAddress } = await deployments.get(
+        Constants.Contracts.OmnaccountFallback
+      );
+
+      const {
+        safeMastercopyAddress,
+        safeProxyFactoryAddress,
+        omnaccountModuleAddress: predictedOmnaccountModuleAddress,
+        omnaccountFallbackAddress: predictedOmnaccountFallbackAddress,
+      } = await getAddresses(factoryAddress, spokePool);
+
+      omnaccountModuleAddress =
+        omnaccountModuleAddress ?? predictedOmnaccountModuleAddress;
+      omnaccountFallbackAddress =
+        omnaccountFallbackAddress ?? predictedOmnaccountFallbackAddress;
+
+      // TODO: Check these addresses exist
+
+      console.log(`Safe mastercopy: ${safeMastercopyAddress}`);
+      console.log(`Safe proxy factory: ${safeProxyFactoryAddress}`);
+      console.log(`Omnaccount module: ${omnaccountModuleAddress}`);
+      console.log(`Omnaccount fallback: ${omnaccountFallbackAddress}`);
+
+      const safeAddress = calculateProxyAddress(
+        calculateInitializer(owner, omnaccountFallbackAddress),
+        safeProxyFactoryAddress,
+        safeMastercopyAddress
+      );
+
+      try {
+        const deployedCode = await ownerSigner.provider.getCode(safeAddress);
+        if (deployedCode === "0x") {
+          // Safe not deployed
+          await deploySafeProxy(
+            safeProxyFactoryAddress,
+            safeMastercopyAddress,
+            owner,
+            ownerSigner
+          );
+        }
+      } catch {}
+
+      console.log(`Safe address: ${safeAddress}`);
+
+      const safe = ISafe__factory.connect(safeAddress, ownerSigner);
+
+      // TODO: Check if module is already enabled
+      await execSafeTransaction(
+        safe,
+        await safe.enableModule.populateTransaction(omnaccountModuleAddress),
+        ownerSigner
+      );
+
+      console.log("Module enabled!");
+
+      await deployments.save(`Vault:${owner}`, {
+        address: safeAddress,
+        abi: Safe.abi,
+      });
+    }
+  );
+
+task("safe:sign", "Signs a safe transaction")
+  .addPositionalParam("to", "Transaction destination")
+  .addPositionalParam("data", "Transaction data")
+  .addOptionalParam("value", "Transaction value")
+  .setAction(
+    async (
+      args: TaskArguments,
+      { getNamedAccounts, ethers }: HardhatRuntimeEnvironment
+    ) => {
+      const { owner, spokePool } = await getNamedAccounts();
+      const ownerSigner = await ethers.getSigner(owner);
+
+      const { chainId } = await ownerSigner.provider.getNetwork();
+      const { address: factoryAddress } = getSingletonFactoryInfo(
+        Number(chainId)
+      ) as SingletonFactoryInfo;
+      const {
+        safeMastercopyAddress,
+        safeProxyFactoryAddress,
+        omnaccountModuleAddress,
+      } = await getAddresses(factoryAddress, spokePool);
+
+      const safeAddress = calculateProxyAddress(
+        calculateInitializer(owner),
+        safeProxyFactoryAddress,
+        safeMastercopyAddress
+      );
+
+      const safe = ISafe__factory.connect(safeAddress, ownerSigner);
+      // const address = await safe.getAddress()
+      // const nonce = await safe.nonce()
+
+      const tx = await execSafeTransaction(safe, args, ownerSigner);
+
+      console.log(`Transaction sent: ${tx.hash}`);
+
+      const receipt = await tx.wait();
+
+      if (receipt && receipt.status === 0) {
+        console.error(`Transaction failed: ${tx.hash}`);
+        return;
+      } else {
+        console.log(`Transaction confirmed: ${tx.hash}`);
+      }
+    }
+  );
+
+task("safe:addFallback", "Adds a new token fallback handler")
+  .addPositionalParam("token", "Token address to execute once received")
+  .addPositionalParam("target", "address to call")
+  .addPositionalParam("selector", "function selector")
+  .addPositionalParam("data", "function data")
+  .setAction(
+    async (
+      { token, target, selector, data }: TaskArguments,
+      { getNamedAccounts, ethers, deployments, network }: HardhatRuntimeEnvironment
+    ) => {
+      const { owner, spokePool } = await getNamedAccounts();
+      let ownerSigner = await ethers.getSigner(owner);
+
+      const moduleDeployment = await deployments.get(
+        Constants.Contracts.OmnaccountModule
+      );
+      const vaultDeployment = await deployments.get("ISafe");
+      const safe = ISafe__factory.connect(vaultDeployment.address, ownerSigner);
+      const module = OmnaccountModule__factory.connect(
+        moduleDeployment.address,
+        ownerSigner
+      );
+
+      // const tx = await execSafeTransaction(
+      //   safe,
+      //   await safe.setFallbackHandler.populateTransaction(moduleDeployment.address),
+      //   ownerSigner
+      // );
+
+      const address = await safe.getAddress();
+      const chainId = await ownerSigner.provider
+        .getNetwork()
+        .then(({ chainId }) => chainId);
+      const nonce = await safe.nonce();
+
+      const calldata = await module.setTokenFallback.populateTransaction(
+        token,
+        {
+          target,
+          selector,
+          data,
+          addressIndex: 0,
+          amountIndex: 0,
+        }
+      );
+
+
+      const ethAdapter = new EthersAdapter({
+        ethers,
+        signerOrProvider: ownerSigner,
+      });
+      const multiSendAddress = getMultiSendDeployment({ network: chainId.toString() }) ?? "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526"
+      const multiSendCallOnlyAddress = getMultiSendCallOnlyDeployment({ network: chainId.toString() }) ?? "0x9641d764fc13c8B624c04430C7356C1C7C8102e2"
+      const contractNetworks: ContractNetworksConfig = {
+        // @ts-ignore
+        [chainId]: {
+          multiSendAddress,
+          multiSendCallOnlyAddress
+        }
+      }
+      const connection = await SafeSdk.default.create({
+        ethAdapter,
+        safeAddress: vaultDeployment.address,
+        contractNetworks,
+      });
+      let safeTx = await connection.createTransaction({
+        transactions: [
+          {
+            to: moduleDeployment.address,
+            value: "0",
+            data: calldata.data,
+          },
+        ],
+      });
+      safeTx = await connection.signTransaction(safeTx)
+      // await safeTx.addSignature()
+      const safeTxResponse = await connection.executeTransaction(
+        safeTx,
+      );
+      const response = await safeTxResponse.transactionResponse?.wait();
+
+      console.log(response?.logs);
+      // return;
+
+      // const { domain, types, message } = createSafeTxParams(
+      //   address,
+      //   chainId,
+      //   {
+      //     to: moduleDeployment.address,
+      //     data: calldata.data,
+      //     value: 0,
+      //   },
+      //   nonce
+      // );
+      // console.log(1, address, chainId, calldata, nonce, domain, types, message);
+      // const signature = await ownerSigner.signTypedData(domain, types, message);
+
+      // const tx = await safe.execTransaction(
+      //   moduleDeployment.address,
+      //   0,
+      //   calldata.data,
+      //   0,
+      //   0,
+      //   0,
+      //   0,
+      //   ethers.ZeroAddress,
+      //   ethers.ZeroAddress,
+      //   signature
+      // );
+
+      // await module.setTokenFallback.populateTransaction(
+      //   ethers.ZeroAddress, {
+      //     target: ethers.ZeroAddress,
+      //     selector: "0x8429f8d0",
+      //     data: "0x",
+      //     addressIndex: 0,
+      //     amountIndex: 0,
+      //   }),
+      
+
+      // {
+      //   to: moduleDeployment.address,
+      //   data: module.interface.encodeFunctionData("setTokenFallback", [
+      //     token,
+      //     {
+      //       target,
+      //       selector,
+      //       data,
+      //       addressIndex: 0,
+      //       amountIndex: 0,
+      //     },
+      //   ])
+      // },
+      // const encoder = ethers.AbiCoder.defaultAbiCoder();
+      // const callData = encoder.encode(
+      //   ["address", "bytes4", "bytes", "uint96", "uint96"],
+      //   [ethers.ZeroAddress, "0x8429f8d0", "0x", 0, 0]
+      // );
+      // const tx = await execSafeTransaction(
+      //   safe,
+      //   await safe.execTransaction.populateTransaction(
+      //     moduleDeployment.address,
+      //     0,
+      //     await module.setTokenFallback.populateTransaction(
+      //       ethers.ZeroAddress, {
+      //         target: ethers.ZeroAddress,
+      //         selector: "0x8429f8d0",
+      //         data: "0x",
+      //         addressIndex: 0,
+      //         amountIndex: 0,
+      //       }),
+      //     0,
+      //     1_000_000,
+      //     30_000_000_000,
+      //     30_000_000_000,
+      //     owner,
+
+      //   ),
+      //   ownerSigner
+      // );
+    }
+  );
+
+async function getUserVault(signer: SignerWithAddress, spokePool: string) {
+  const { chainId } = await signer.provider.getNetwork();
+  const { address: factoryAddress } = getSingletonFactoryInfo(
+    Number(chainId)
+  ) as SingletonFactoryInfo;
+  const {
+    safeMastercopyAddress,
+    safeProxyFactoryAddress,
+    omnaccountModuleAddress,
+    omnaccountFallbackAddress,
+  } = await getAddresses(factoryAddress, spokePool);
+
+  const safeAddress = calculateProxyAddress(
+    calculateInitializer(signer.address, omnaccountFallbackAddress),
+    safeProxyFactoryAddress,
+    safeMastercopyAddress
+  );
+
+  const safe = ISafe__factory.connect(safeAddress, signer);
+
+  return safe;
+}
+
+async function getAddresses(factory: string, spokePool: string) {
+  const safeMastercopyAddress = getCreate2Address(
+    factory,
+    ZeroHash,
+    keccak256(Safe.bytecode)
+  );
+  const safeProxyFactoryAddress = getCreate2Address(
+    factory,
+    ZeroHash,
+    keccak256(SafeProxyFactory.bytecode)
+  );
+  const omnaccountModuleAddress = getCreate2Address(
+    factory,
+    ZeroHash,
+    keccak256(getOmnaccountModuleBytecode(spokePool))
+  );
+  const omnaccountFallbackAddress = getCreate2Address(
+    factory,
+    ZeroHash,
+    keccak256(getOmnaccountFallbackBytecode(spokePool, omnaccountModuleAddress))
+  );
+
+  return {
+    safeMastercopyAddress,
+    safeProxyFactoryAddress,
+    omnaccountModuleAddress,
+    omnaccountFallbackAddress,
+  };
+}

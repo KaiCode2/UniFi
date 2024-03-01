@@ -2,12 +2,16 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
-// import {Counter} from "../src/Counter.sol";
+import {OmnaccountModule} from "../../contracts/OmnaccountModule.sol";
 
-contract CounterTest is Test {
-    // Counter public counter;
+contract AcrossBridgeTest is Test {
+    address public bridge;
+    OmnaccountModule public omnaccountModule;
 
     function setUp() public {
+        bridge = makeAddr("BRIDGE");
+
+        omnaccountModule = new OmnaccountModule(bridge);
         // counter = new Counter();
         // counter.setNumber(0);
     }

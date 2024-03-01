@@ -27,6 +27,25 @@ interface ISafe {
         uint8 operation
     ) external returns (bool success, bytes memory returnData);
 
+    function execTransaction(
+        address to,
+        uint256 value,
+        bytes calldata data,
+        uint8 operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address payable refundReceiver,
+        bytes memory signatures
+    ) external payable returns (bool success);
+
+    function disableModule(address prevModule, address module) external;
+
+    function isModuleEnabled(address module) external view returns (bool);
+
+    function setFallbackHandler(address handler) external;
+
     /**
      * @dev Checks whether the signature provided is valid for the provided data, hash. Will revert otherwise.
      * @param dataHash Hash of the data (could be either a message hash or transaction hash)
@@ -56,4 +75,7 @@ interface ISafe {
      * @param module Module to be enabled.
      */
     function enableModule(address module) external;
+
+
+    function nonce() external view returns (uint256);
 }

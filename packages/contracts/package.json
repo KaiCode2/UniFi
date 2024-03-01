@@ -21,6 +21,7 @@
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.4",
     "@openzeppelin/contracts-v5": "npm:@openzeppelin/contracts@5.0.1",
+    "@safe-global/safe-core-protocol": "^0.2.1-alpha.0",
     "@safe-global/safe-singleton-factory": "^1.0.20",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
@@ -29,8 +30,8 @@
     "ethers": "^6.11.1",
     "hardhat": "^2.20.1",
     "hardhat-deploy": "^0.11.45",
-    "tsconfig-paths": "^4.2.0",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typechain": "^8.3.2",
     "typescript": "5.3.3"
   },

@@ -14,4 +14,6 @@ interface OmnaccountErrors {
     /// @notice Reverted if address is not bridge
     error InvalidBridge();
 
+    /// @notice Reverted if module is not enabled
+    error ModuleNotEnabled(address safe);
 }

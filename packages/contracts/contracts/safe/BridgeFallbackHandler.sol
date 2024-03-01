@@ -4,42 +4,31 @@ pragma solidity 0.8.23;
 import {HandlerContext} from "@safe-global/safe-contracts/contracts/handler/HandlerContext.sol";
 import {CompatibilityFallbackHandler} from "@safe-global/safe-contracts/contracts/handler/CompatibilityFallbackHandler.sol";
 import {AcrossHookReceiver} from "../bridge/AcrossHookReceiver.sol";
-
-import "hardhat/console.sol";
+import {TokenFallback} from "../libraries/TokenFallback.sol";
+import {IFallbackRegister} from "../interfaces/IFallbackRegister.sol";
 
 abstract contract BridgeFallbackHandler is CompatibilityFallbackHandler, HandlerContext, AcrossHookReceiver {
-    
-    //  ─────────────────────────────────────────────────────────────────────────────
-    //  Structs
-    //  ─────────────────────────────────────────────────────────────────────────────
-
-    struct BridgeFallback {
-        address target;
-        bytes4 selector;
-        bytes data;
-        uint96 addressIndex;
-        uint96 amountIndex;
-    }
+    using TokenFallback for TokenFallback.FallbackData;
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Events
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    event TokensBridged(address indexed token, uint256 amount);
+    event TokensBridged(address indexed token, uint256 amount, bytes output);
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Fields
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    /// @notice Maps token address to default fallback behavior
-    mapping(address token => BridgeFallback fallbackData) public bridgeFallbacks;
+    /// @notice Omnaccount token bridge fallback register
+    IFallbackRegister public fallbackRegister;
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Constructor
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    constructor(address _spokePool) AcrossHookReceiver(_spokePool) {
-        // no-op
+    constructor(address _spokePool, address _fallbackRegister) AcrossHookReceiver(_spokePool) {
+        fallbackRegister = IFallbackRegister(_fallbackRegister);
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -50,13 +39,22 @@ abstract contract BridgeFallbackHandler is CompatibilityFallbackHandler, Handler
         address token,
         uint256 amount,
         bytes memory message
-    ) internal virtual override {
+    ) internal override {
         // 1. Validate the message
-
-        console.log("Bridge fallback handler received tokens: ", token, amount);
+        if (message.length == 0) {
+            // If length is 0, check for a fallback handler
+            (bool exists, TokenFallback.FallbackData memory fallbackData) = fallbackRegister.getFallback(address(this), token);
+            if (exists) {
+                (bool success, bytes memory output) = fallbackData.target.call(fallbackData.encode(token, amount));
+                require(success);
+                message = output;
+            }
+        } else {
+            // If length is not 0, validate message is authorized then execute the message's calldata
+        }
 
         // 2. Execute the message's calldata
 
-        emit TokensBridged(token, amount);
+        emit TokensBridged(token, amount, message);
     }
 }

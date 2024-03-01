@@ -1484,6 +1484,11 @@
   resolved "https://registry.yarnpkg.com/@safe-global/safe-contracts/-/safe-contracts-1.4.1-build.0.tgz#5d82e2f3fd8430b4589df992b9ee2c71386082fe"
   integrity sha512-TIpoKJtMqLcLFoid0cvpxo8YTcnRUj95MHvxzwgPbJPRONOckNS6ebgGyBBRDmnpxFh34IBpPUZ7JD+z2Cfbbg==
 
+"@safe-global/safe-core-protocol@^0.2.1-alpha.0":
+  version "0.2.1-alpha.0"
+  resolved "https://registry.yarnpkg.com/@safe-global/safe-core-protocol/-/safe-core-protocol-0.2.1-alpha.0.tgz#eb9c792e34bcb3818ae44dc0edc3cea4a2466294"
+  integrity sha512-X7OILBxC1HhK7w8P70O9PsKrufD0w0fU+6rtf94w3aALmUMDywJr5g9mM5qoTAI/pRCjp3TzRkaw5yb3flJebw==
+
 "@safe-global/safe-singleton-factory@^1.0.20":
   version "1.0.20"
   resolved "https://registry.yarnpkg.com/@safe-global/safe-singleton-factory/-/safe-singleton-factory-1.0.20.tgz#e8935c96fabf5cc0add7ac06803582e451b114fe"

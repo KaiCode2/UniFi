@@ -21,7 +21,7 @@ const deployModule: DeployFunction = async function ({
     const { address: factoryAddress } = getSingletonFactoryInfo(Number(chainId)) as SingletonFactoryInfo
     
     const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, spokePool, deployerSigner);
-    const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, deployerSigner);
+    const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, omnaccountModuleAddress, deployerSigner);
 
     await deployments.save(Constants.Contracts.OmnaccountModule, {
       address: omnaccountModuleAddress,

@@ -13,7 +13,7 @@ export default async function deploySingletons(deployer: SignerWithAddress, spok
   const safeMastercopyAddress = await deploySingleton(factoryAddress, Safe.bytecode, deployer);
   const safeProxyFactoryAddress = await deploySingleton(factoryAddress, SafeProxyFactory.bytecode, deployer);
   const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, spokePool, deployer);
-  const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, deployer);
+  const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, omnaccountModuleAddress, deployer);
 
   return {
     safeMastercopyAddress,
@@ -28,8 +28,8 @@ export function getOmnaccountModuleBytecode(spokePool: string) {
   return OmnaccountModule.bytecode + moduleConstructor.slice(2);
 }
 
-export function getOmnaccountFallbackBytecode(spokePool: string) {
-  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address'], [spokePool]);
+export function getOmnaccountFallbackBytecode(spokePool: string, fallbackRegister: string) {
+  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address', 'address'], [spokePool, fallbackRegister]);
   return OmnaccountFallback.bytecode + moduleConstructor.slice(2);
 }
 
@@ -40,8 +40,8 @@ export async function deployModuleSingleton(factory: string, spokePool: string, 
   return omnaccountModuleAddress;
 }
 
-export async function deployFallbackSingleton(factory: string, spokePool: string, deployer: SignerWithAddress) {
-  const omnaccountFallbackBytecode = getOmnaccountFallbackBytecode(spokePool);
+export async function deployFallbackSingleton(factory: string, spokePool: string, fallbackRegister: string, deployer: SignerWithAddress) {
+  const omnaccountFallbackBytecode = getOmnaccountFallbackBytecode(spokePool, fallbackRegister);
   const omnaccountFallbackAddress = await deploySingleton(factory, omnaccountFallbackBytecode, deployer);
 
   return omnaccountFallbackAddress;
@@ -50,7 +50,7 @@ export async function deployFallbackSingleton(factory: string, spokePool: string
 
 async function deploySingletonFactory(signer: SignerWithAddress) {
   const { chainId } = await signer.provider.getNetwork()
-  const { address, signerAddress, transaction } = getSingletonFactoryInfo(Number(chainId)) as SingletonFactoryInfo
+  const { address, signerAddress } = getSingletonFactoryInfo(Number(chainId)) as SingletonFactoryInfo
 
   // fund the presined transaction signer
   await signer.sendTransaction({

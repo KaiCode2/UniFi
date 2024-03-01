@@ -1,14 +1,15 @@
 import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { DeterministicDeploymentInfo } from "hardhat-deploy/types";
+import { getSingletonFactoryInfo } from '@safe-global/safe-singleton-factory'
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-network-helpers";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
+import "hardhat-tracer";
 import "tsconfig-paths/register";
-import { getSingletonFactoryInfo } from '@safe-global/safe-singleton-factory'
 
 dotenv.config();
 
@@ -132,6 +133,9 @@ const config: HardhatUserConfig = {
     target: "ethers-v6",
     outDir: "./typechain-types",
   },
+  tracer: {
+    tasks: ["tasks", "scripts", "deploy"],
+  }
 };
 
 function deterministicDeployment(network: string): DeterministicDeploymentInfo {

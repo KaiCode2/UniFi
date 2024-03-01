@@ -3,12 +3,12 @@ import { TransactionRequest, ZeroAddress } from 'ethers'
 
 import { ISafe } from '@/typechain-types'
 
-export default async function execSafeTransaction(safe: ISafe, { to, data, value = 0 }: TransactionRequest, signer: SignerWithAddress) {
+export default async function execSafeTransaction(safe: ISafe, { to, data, value = 0 }: TransactionRequest, signer: SignerWithAddress, operation = 0) {
   const address = await safe.getAddress()
   const chainId = await signer.provider.getNetwork().then(({ chainId }) => chainId)
   const nonce = await safe.nonce()
 
-  const { domain, types, message } = paramsToSign(address, chainId, { to, data, value }, nonce)
+  const { domain, types, message } = createSafeTxParams(address, chainId, { to, data, value }, nonce)
 
   const signature = await signer.signTypedData(domain, types, message)
 
@@ -17,7 +17,7 @@ export default async function execSafeTransaction(safe: ISafe, { to, data, value
     to as string,
     value as number | bigint,
     data as string,
-    0, // operation
+    operation,
     0,
     0,
     0,
@@ -27,7 +27,7 @@ export default async function execSafeTransaction(safe: ISafe, { to, data, value
   )
 }
 
-function paramsToSign(address: string, chainId: bigint, { to, data, value }: TransactionRequest, nonce: bigint | number) {
+export function createSafeTxParams(address: string, chainId: bigint, { to, data, value }: TransactionRequest, nonce: bigint | number) {
   const domain = { verifyingContract: address, chainId }
   const primaryType = 'SafeTx' as const
   const types = {

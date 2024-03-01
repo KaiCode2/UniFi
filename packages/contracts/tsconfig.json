@@ -18,6 +18,7 @@
     "utils",
     "test",
     "tasks",
+    "scripts",
     "hardhat.config.ts"
   ]
 }

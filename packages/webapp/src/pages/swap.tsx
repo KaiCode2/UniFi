@@ -1,14 +1,4 @@
-import { gql } from '@apollo/client';
-import { loadErrorMessages, loadDevMessages } from '@apollo/client/dev';
-
-import { useQuery } from '@apollo/react-hooks';
-import {
-  ChevronDown,
-  CoinEuro,
-  CurrencyEthereum,
-  Search,
-  Tex,
-} from 'tabler-icons-react';
+import { ChevronDown } from 'tabler-icons-react';
 import {
   Text,
   Box,
@@ -20,7 +10,6 @@ import {
   Menu,
   Title,
   rem,
-  TextInput,
   Accordion,
   NumberInput,
 } from '@mantine/core';
@@ -32,17 +21,19 @@ import { SUPPORTED_NETWORKS } from '../utils/chains';
 import { getEnvironmentWebsiteUrl } from '../utils/helpers';
 import { SignerContext } from '../Context/Signer';
 import { SearchedPool, TokenBalance } from '../interfaces';
-import { client, useGraphQLQuery } from '../lib/graphql/client';
-import { searchPool } from '../lib/graphql/queries';
-import { ethers, parseEther, parseUnits } from 'ethers';
+import { ethers } from 'ethers';
 
 const SwapPage = () => {
-  const { currentNetwork } = useContext(CurrentNetworkContext);
-  const { signer } = useContext(SignerContext);
+  const { currentNetwork, setCurrentNetwork } = useContext(
+    CurrentNetworkContext
+  );
+  const { signer, setSigner } = useContext(SignerContext);
   const [tokensInWallet, setTokensInWallet] = useState<TokenBalance[]>([]);
   const [spendNetwork, setSpendNetwork] = useState<string>('');
-  const [buyNetwork, setBuyNetwork] = useState<string>('');
+
   const [amountToBuy, setAmountToBuy] = useState(0);
+
+  const [vaults, setVaults] = useState();
 
   useEffect(() => {
     (async () => {
@@ -58,7 +49,7 @@ const SwapPage = () => {
 
         setSpendNetwork(randomSpendNetwork);
         // default the buying network to the current network
-        setBuyNetwork(currentNetwork);
+
         // TODO: FIX GETTING SHIT FROM MORALIS
         const getMyBalance = await fetch(
           `${getEnvironmentWebsiteUrl()}/api/myTokenBalances`,
@@ -74,7 +65,7 @@ const SwapPage = () => {
         setTokensInWallet(data);
       }
     })();
-  }, [currentNetwork]);
+  }, [currentNetwork, spendNetwork]);
 
   return (
     <Box style={{ maxHeight: '100vh' }}>
@@ -94,7 +85,7 @@ const SwapPage = () => {
                     leftSection={
                       <Image
                         src={SUPPORTED_NETWORKS[spendNetwork]?.logo}
-                        style={{ width: 14 }}
+                        style={{ width: 18 }}
                       />
                     }
                     variant="light"
@@ -113,7 +104,6 @@ const SwapPage = () => {
                     return (
                       <Menu.Item
                         onClick={() => {
-                          console.log(`new chainId`, chainId);
                           setSpendNetwork(chainId);
                         }}
                         key={i}
@@ -148,8 +138,8 @@ const SwapPage = () => {
                     </Center>
                   </Accordion.Control>
                   <Accordion.Panel>
-                    {/* @ts-expect-error */}
                     <Text size="sm" c="dimmed">
+                      {/* @ts-expect-error */}
                       Balance: {token.balance / 10 ** 18} ${token.symbol}
                     </Text>
                     <Box>
@@ -176,7 +166,109 @@ const SwapPage = () => {
         </Box>
         <Divider orientation="vertical" />
         <Box style={{ width: '50%', paddingTop: 10 }}>
-          <Title style={{ textAlign: 'center' }}>Buy</Title>
+          <Center px={10} style={{ justifyContent: 'space-between' }}>
+            <Box style={{ width: '33%' }} />
+            <Box style={{ width: '33%' }}>
+              <Title style={{ textAlign: 'center' }}>Buy</Title>
+            </Box>
+            <Center style={{ width: '33%', justifyContent: 'flex-end' }}>
+              <Menu shadow="md" width={200} withArrow>
+                <Menu.Target>
+                  <Button
+                    rightSection={<ChevronDown size={16} />}
+                    leftSection={
+                      <Image
+                        src={SUPPORTED_NETWORKS[currentNetwork]?.logo}
+                        style={{ width: 18 }}
+                      />
+                    }
+                    variant="light"
+                    color="gray"
+                  >
+                    {currentNetwork
+                      ? SUPPORTED_NETWORKS[currentNetwork].chainName
+                      : '???'}
+                  </Button>
+                </Menu.Target>
+
+                <Menu.Dropdown>
+                  {Object.entries(SUPPORTED_NETWORKS).map((chainEntry, i) => {
+                    const [chainId, configs] = chainEntry;
+                    console.log(`new chainId`, chainId);
+                    return (
+                      <Menu.Item
+                        onClick={async () => {
+                          console.log();
+                          try {
+                            // switch to chain they want to deploy vault on
+                            // @ts-expect-error
+                            await window?.ethereum.request({
+                              method: 'wallet_switchEthereumChain',
+                              params: [
+                                {
+                                  // this is ETH sepolia tesnet
+                                  chainId,
+                                },
+                              ],
+                            });
+                            // NOTE: refresh the signer with new network connection
+                            const provider = new ethers.BrowserProvider(
+                              // @ts-expect-error
+                              window?.ethereum
+                            );
+                            const signerWithNewNetwork =
+                              await provider.getSigner();
+                            setSigner(signerWithNewNetwork);
+                            setCurrentNetwork(chainId);
+                          } catch (err) {
+                            // add network if they don't have it added to metamask
+                            if (err.code == 4902) {
+                              const { name, decimals, symbol, rpcUrl } =
+                                SUPPORTED_NETWORKS[chainId].token;
+                              console.log(SUPPORTED_NETWORKS[chainId]);
+                              // @ts-expect-error
+                              await window?.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [
+                                  {
+                                    chainName:
+                                      SUPPORTED_NETWORKS[chainId].chainName,
+                                    chainId,
+                                    nativeCurrency: {
+                                      name,
+                                      decimals,
+                                      symbol,
+                                    },
+                                    rpcUrls: [rpcUrl],
+                                  },
+                                ],
+                              });
+                              const provider = new ethers.BrowserProvider(
+                                // @ts-expect-error
+                                window?.ethereum
+                              );
+                              const signerWithNewNetwork =
+                                await provider.getSigner();
+                              setSigner(signerWithNewNetwork);
+                            }
+                          }
+                        }}
+                        key={i}
+                        leftSection={
+                          <Image
+                            src={configs.logo}
+                            style={{ width: rem(14), height: rem(14) }}
+                          />
+                        }
+                      >
+                        {configs.chainName}
+                      </Menu.Item>
+                    );
+                  })}
+                </Menu.Dropdown>
+              </Menu>
+            </Center>
+          </Center>
           <Divider mt={10} />
 
           {/* {currentNetwork &&
@@ -242,28 +334,22 @@ const SwapPage = () => {
 };
 export default SwapPage;
 
-// variables: {
-//   //       $orderDirection: OrderDirection
-//   // $where: Pool_filter
-//   // $orderBy: Pool_orderBy
-//   // $first: Int
-
-//   where: {
-//     or: [
-//       {
-//         token0_: {
-//           or: [
-//             {
-//               name_starts_with_nocase: 'hi',
-//               symbol_starts_with_nocase: 'hi',
-//             },
-//           ],
-//         },
-//       },
-//     ],
-//   },
-//   orderBy: 'liquidity',
-//   orderDirection: 'desc',
-//   first: 50,
-// },
-// });
+// let transactions = [];
+//       if (await IERC20__factory.connect(inputTokenAddress, ownerSigner).allowance(vaultDeployment.address, spokePool) < ethers.parseUnits(amountIn, 18)) {
+//         const approveTx = await IERC20__factory.connect(inputTokenAddress, ownerSigner).approve.populateTransaction(spokePool, ethers.MaxUint256);
+//         transactions.push({
+//           to: approveTx.to,
+//           value: "0",
+//           data: approveTx.data
+//         })
+//         console.log("Approving token...")
+//       } else {
+//         transactions.push({
+//           to: moduleDeployment.address,
+//           value: "0",
+//           data: calldata.data,
+//         });
+//         console.log("Sending bridge transaction...")
+//       }
+//       let safeTx = await connection.createTransaction({transactions});
+//       safeTx = await connection.signTransaction(safeTx);

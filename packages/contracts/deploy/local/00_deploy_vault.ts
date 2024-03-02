@@ -46,8 +46,8 @@ const deployVault: DeployFunction = async function ({
 
   const safe = ISafe__factory.connect(safeAddress, ownerSigner);
 
-  const isModuleEnabled = await safe.isModuleEnabled(omnaccountModuleAddress);
-  if (!isModuleEnabled) {
+  const isPluginModuleEnabled = await safe.isModuleEnabled(omnaccountModuleAddress);
+  if (!isPluginModuleEnabled) {
     await execSafeTransaction(
       safe,
       await safe.enableModule.populateTransaction(omnaccountModuleAddress),
@@ -55,18 +55,14 @@ const deployVault: DeployFunction = async function ({
     );
   }
 
-  // TODO: Check if fallback handler is already set
-  await execSafeTransaction(
-    safe,
-    await safe.setFallbackHandler.populateTransaction(omnaccountFallbackAddress),
-    ownerSigner
-  );
-
-  await execSafeTransaction(
-    safe,
-    await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
-    ownerSigner
-  );
+  const isFallbackModuleEnabled = await safe.isModuleEnabled(omnaccountFallbackAddress);
+  if (!isFallbackModuleEnabled) {
+    await execSafeTransaction(
+      safe,
+      await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+      ownerSigner
+    );
+  }
 
   console.log("Vault deployed to:", safeAddress);
 

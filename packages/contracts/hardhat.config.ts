@@ -173,7 +173,7 @@ const config: HardhatUserConfig = {
     outDir: "./typechain-types",
   },
   tracer: {
-    tasks: ["tasks", "scripts", "deploy"],
+    // tasks: ["tasks", "scripts", "deploy"],
   }
 };
 

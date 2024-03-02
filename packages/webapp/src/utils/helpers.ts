@@ -14,7 +14,11 @@ export const getEnvironmentWebsiteUrl = () =>
     ? PRODUCTION_WEBSITE_URL
     : DEVELOPMENT_WEBSITE_URL;
 
-export const NETWORK_FALLBACK_HANDLERS = {
+interface FallbackHandlerAddresses {
+  [chainId: string]: string;
+}
+
+export const NETWORK_FALLBACK_HANDLERS: FallbackHandlerAddresses = {
   // ETH Sepolia
   '0xaa36a7': sepoliaFallbackHandler.address,
   '0x14a33': baseSepoliaFallbackHandler.address,

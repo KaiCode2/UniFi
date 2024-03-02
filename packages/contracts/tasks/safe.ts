@@ -17,7 +17,7 @@ import SafeProxyFactory from "@safe-global/safe-contracts/build/artifacts/contra
 import type { HardhatRuntimeEnvironment, TaskArguments } from "hardhat/types";
 import { getCreate2Address, keccak256, ZeroHash } from "ethers";
 import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces/ISafe__factory";
-import { OmnaccountModule__factory, V3SpokePoolInterface__factory } from "@/typechain-types";
+import { IERC20__factory, OmnaccountModule__factory, V3SpokePoolInterface__factory } from "@/typechain-types";
 import execSafeTransaction from "@/deploy/utils/exec_transaction";
 import { Constants, delay } from "@/utils";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
@@ -210,7 +210,7 @@ task("safe:bridge", "Executes a bridge transaction")
         vaultDeployment.address,
         recipient ?? vaultDeployment.address,
         inputTokenAddress,
-        tokenOut,
+        ethers.ZeroAddress,
         ethers.parseUnits(amountIn, 18),
         ethers.parseUnits(amountOut, 18),
         parseInt(destinationChainId),
@@ -226,14 +226,16 @@ task("safe:bridge", "Executes a bridge transaction")
         signerOrProvider: ownerSigner,
       });
       const multiSendAddress =
-        getMultiSendDeployment({ network: chainId.toString() }) ??
+        getMultiSendDeployment({ network: chainId.toString() })?.defaultAddress ??
         "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526";
       const multiSendCallOnlyAddress =
-        getMultiSendCallOnlyDeployment({ network: chainId.toString() }) ??
+        getMultiSendCallOnlyDeployment({ network: chainId.toString() })?.defaultAddress ??
         "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
+
+      // @ts-ignore
       const contractNetworks: ContractNetworksConfig = {
         // @ts-ignore
-        [chainId]: {
+        [chainId.toString()]: {
           multiSendAddress,
           multiSendCallOnlyAddress,
         },
@@ -243,18 +245,30 @@ task("safe:bridge", "Executes a bridge transaction")
         safeAddress: vaultDeployment.address,
         contractNetworks,
       });
-      let safeTx = await connection.createTransaction({
-        transactions: [
-          {
-            to: moduleDeployment.address,
-            value: "0",
-            data: calldata.data,
-          },
-        ],
-      });
+
+      let transactions = [];
+      if (await IERC20__factory.connect(inputTokenAddress, ownerSigner).allowance(vaultDeployment.address, spokePool) < ethers.parseUnits(amountIn, 18)) {
+        const approveTx = await IERC20__factory.connect(inputTokenAddress, ownerSigner).approve.populateTransaction(spokePool, ethers.MaxUint256);
+        transactions.push({
+          to: approveTx.to,
+          value: "0",
+          data: approveTx.data
+        })
+        console.log("Approving token...")
+      } else {
+        transactions.push({
+          to: moduleDeployment.address,
+          value: "0",
+          data: calldata.data,
+        });
+        console.log("Sending bridge transaction...")
+      }
+      let safeTx = await connection.createTransaction({transactions});
       safeTx = await connection.signTransaction(safeTx);
       // await safeTx.addSignature()
+      console.log(safeTx)
       const safeTxResponse = await connection.executeTransaction(safeTx);
+      console.log(safeTxResponse)
       const response = await safeTxResponse.transactionResponse?.wait();
 
       console.log(response?.logs)

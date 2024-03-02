@@ -3,7 +3,7 @@ import { getSingletonFactoryInfo, SingletonFactoryInfo } from "@safe-global/safe
 import { getCreate2Address, keccak256, parseUnits, ZeroHash, AbiCoder } from "ethers"
 
 import OmnaccountModule from "@/artifacts/contracts/OmnaccountModule.sol/OmnaccountModule.json";
-import OmnaccountFallback from "@/artifacts/contracts/OmnaccountFallback.sol/OmnaccountFallback.json";
+import UniFiPlugin from "@/artifacts/contracts/UniFiPlugin.sol/UniFiPlugin.json";
 import Safe from "@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json"
 import SafeProxyFactory from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json"
 
@@ -12,39 +12,25 @@ export default async function deploySingletons(deployer: SignerWithAddress, spok
   const factoryAddress = await deploySingletonFactory(deployer);
   const safeMastercopyAddress = await deploySingleton(factoryAddress, Safe.bytecode, deployer);
   const safeProxyFactoryAddress = await deploySingleton(factoryAddress, SafeProxyFactory.bytecode, deployer);
-  const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, spokePool, deployer);
-  const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, omnaccountModuleAddress, deployer);
+  const UniFiPluginAddress = await deployFallbackSingleton(factoryAddress, spokePool, deployer);
 
   return {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
-    omnaccountModuleAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   }
 }
 
-export function getOmnaccountModuleBytecode(spokePool: string) {
+export function getUniFiPluginBytecode(spokePool: string) {
   const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address'], [spokePool]);
-  return OmnaccountModule.bytecode + moduleConstructor.slice(2);
+  return UniFiPlugin.bytecode + moduleConstructor.slice(2);
 }
 
-export function getOmnaccountFallbackBytecode(spokePool: string, fallbackRegister: string) {
-  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address', 'address'], [spokePool, fallbackRegister]);
-  return OmnaccountFallback.bytecode + moduleConstructor.slice(2);
-}
+export async function deployFallbackSingleton(factory: string, spokePool: string, deployer: SignerWithAddress) {
+  const UniFiPluginBytecode = getUniFiPluginBytecode(spokePool);
+  const UniFiPluginAddress = await deploySingleton(factory, UniFiPluginBytecode, deployer);
 
-export async function deployModuleSingleton(factory: string, spokePool: string, deployer: SignerWithAddress) {
-  const omnaccountModuleBytecode = getOmnaccountModuleBytecode(spokePool);
-  const omnaccountModuleAddress = await deploySingleton(factory, omnaccountModuleBytecode, deployer);
-
-  return omnaccountModuleAddress;
-}
-
-export async function deployFallbackSingleton(factory: string, spokePool: string, fallbackRegister: string, deployer: SignerWithAddress) {
-  const omnaccountFallbackBytecode = getOmnaccountFallbackBytecode(spokePool, fallbackRegister);
-  const omnaccountFallbackAddress = await deploySingleton(factory, omnaccountFallbackBytecode, deployer);
-
-  return omnaccountFallbackAddress;
+  return UniFiPluginAddress;
   
 }
 

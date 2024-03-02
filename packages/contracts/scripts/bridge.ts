@@ -1,4 +1,4 @@
-import { ethers, getNamedAccounts, network, tracer } from "hardhat";
+import { ethers, getNamedAccounts, network, } from "hardhat";
 import {
   impersonateAccount,
   setBalance,
@@ -7,13 +7,17 @@ import deploySingletons from "@/deploy/utils/deploy_singleton";
 import deploySafeProxy from "@/deploy/utils/deploy_safe_proxy";
 import {
   IERC20__factory,
-  OmnaccountFallback__factory,
+  UniFiPlugin__factory,
 } from "@/typechain-types";
 import execSafeTransaction from "@/deploy/utils/exec_transaction";
 import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces";
-import { EthersAdapter } from "@safe-global/protocol-kit";
+import { EthersAdapter, SigningMethod, buildSignatureBytes, buildContractSignature } from "@safe-global/protocol-kit";
 import * as SafeSdk from "@safe-global/protocol-kit";
-import { getMultiSendCallOnlyDeployment, getMultiSendDeployment } from "@safe-global/safe-deployments";
+import {
+  getMultiSendCallOnlyDeployment,
+  getMultiSendDeployment,
+} from "@safe-global/safe-deployments";
+import { signatures } from "@/utils";
 
 async function main() {
   const { owner, deployer, spokePool, relayer, WETH } =
@@ -24,7 +28,7 @@ async function main() {
   const {
     safeProxyFactoryAddress,
     safeMastercopyAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   } = await deploySingletons(deployerSigner, spokePool);
 
   // TODO: deploy with module
@@ -33,29 +37,33 @@ async function main() {
     safeMastercopyAddress,
     owner,
     deployerSigner,
-    omnaccountFallbackAddress
+    UniFiPluginAddress
   );
   let safe: any = ISafe__factory.connect(safeAddress, ownerSigner);
 
   await execSafeTransaction(
     safe,
-    await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+    await safe.enableModule.populateTransaction(UniFiPluginAddress),
     ownerSigner
   );
 
+  console.log("domain sep: ", await safe.domainSeparator())
+
   const chainId = await ownerSigner.provider
-        .getNetwork()
-        .then(({ chainId }) => chainId);
-  safe = OmnaccountFallback__factory.connect(safeAddress, ownerSigner);
+    .getNetwork()
+    .then(({ chainId }) => chainId);
+  safe = UniFiPlugin__factory.connect(safeAddress, ownerSigner);
+
   const multiSendAddress =
-    getMultiSendDeployment({ network: chainId.toString() }) ??
-    "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526";
+    getMultiSendDeployment({ network: chainId.toString() })
+      ?.defaultAddress ?? "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526";
   const multiSendCallOnlyAddress =
-    getMultiSendCallOnlyDeployment({ network: chainId.toString() }) ??
-    "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
+    getMultiSendCallOnlyDeployment({ network: chainId.toString() })
+      ?.defaultAddress ?? "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
+  // @ts-ignore
   const contractNetworks: SafeSdk.ContractNetworksConfig = {
     // @ts-ignore
-    [chainId]: {
+    [chainId.toString()]: {
       multiSendAddress,
       multiSendCallOnlyAddress,
     },
@@ -63,12 +71,13 @@ async function main() {
   const ethAdapter = new EthersAdapter({
     ethers,
     signerOrProvider: ownerSigner,
-    contractNetworks,
   });
   const connection = await SafeSdk.default.create({
     ethAdapter,
     safeAddress: safeAddress,
+    contractNetworks,
   });
+  const nonce = await connection.getNonce();
 
   await impersonateAccount(spokePool);
   const spokePoolSigner = await ethers.getSigner(spokePool);
@@ -97,25 +106,41 @@ async function main() {
     ["address[]", "bytes[]"],
     [[WETH], [withdrawData]]
   ); // WETH withdraw
-  const message = connection.createMessage({
-    domain: {
-      verifyingContract: safeAddress,
-      chainId: network.config.chainId,
-    },
-    types: {
-      SafeMessage: [{ type: "bytes", name: "message" }],
-    },
-    message: {
-      message: encodedCall,
-    },
-  });
-  const signed = await connection.signMessage(message);
-  console.log("Signed message: ", signed);
+
+  const dataStruct = signatures.makeBridgeTypedMessage(
+    [WETH],
+    [withdrawData],
+    nonce,
+    chainId,
+    safeAddress
+  );
+  connection.isOwner
+  
+  const message = connection.createMessage(dataStruct);
+  const signed = await connection.signMessage(message, SigningMethod.ETH_SIGN_TYPED_DATA_V3);
+  // console.log("Signed message: ", signed, " message: ", message);
+  // console.log("struct hash: ", ethers.TypedDataEncoder.hashStruct("BridgeCall", dataStruct.types, dataStruct.message));
+  // console.log("type hash: ", ethers.TypedDataEncoder.)
+  // console.log("domain sep: ", ethers.TypedDataEncoder.hashDomain(dataStruct.domain));
+  // console.log("typedDataHash: ", ethers.TypedDataEncoder.hash(dataStruct.domain, dataStruct.types, dataStruct.message));
+
+  // const signatures = signed.signatures.values()
+  // console.log("Signatures: ", buildSignatureBytes([signed.getSignature(owner)!]), await buildContractSignature(Array.from(signed.signatures.values()), owner), signed.getSignature(owner));
+  // console.log("owner: ", owner, " safe owners: ", await connection.getOwners(), " safe threshold: ", await connection.getThreshold());
+
+  const signature = await ownerSigner.signTypedData(dataStruct.domain, dataStruct.types, dataStruct.message);
+  console.log("Signature: ", signature, await connection.getNonce());
+  // console.log(await connection.isModuleEnabled("0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99"));
+
+  const bridgeData = ethers.AbiCoder.defaultAbiCoder().encode(
+    ["address[]", "bytes[]", "bytes"],
+    [[WETH], [withdrawData], signature]
+  );
   const tx = await safe.handleV3AcrossMessage(
     WETH,
     ethers.parseEther("1"),
     relayer,
-    encodedCall
+    bridgeData
   );
   console.log("Bridge tx send w/ hash: ", tx.hash);
 
@@ -124,6 +149,8 @@ async function main() {
   receipt?.logs?.forEach((log: any) => {
     console.log(log);
   });
+
+  console.log(await connection.getNonce())
 }
 
 main().catch((error) => {

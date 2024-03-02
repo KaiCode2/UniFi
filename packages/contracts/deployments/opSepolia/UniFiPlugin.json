@@ -1,16 +1,11 @@
 {
-  "address": "0xbEc2f4370C4313Fd2cbD0b493EAF63E566A06F87",
+  "address": "0x29c5ce6577DB2F6cE6B577EC96739B5d71Da5011",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
           "name": "_spokePool",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_fallbackRegister",
           "type": "address"
         }
       ],
@@ -19,8 +14,146 @@
     },
     {
       "inputs": [],
+      "name": "ECDSAInvalidSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "length",
+          "type": "uint256"
+        }
+      ],
+      "name": "ECDSAInvalidSignatureLength",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "s",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ECDSAInvalidSignatureS",
+      "type": "error"
+    },
+    {
+      "inputs": [],
       "name": "InvalidBridge",
       "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidEntryPoint",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "safe",
+          "type": "address"
+        }
+      ],
+      "name": "ModuleNotEnabled",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "metadataHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "Metadata",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "safe",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "selector",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint96",
+              "name": "tokenAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "amountIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "vaultAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "indexed": false,
+          "internalType": "struct TokenFallback.FallbackData",
+          "name": "fallbackData",
+          "type": "tuple"
+        }
+      ],
+      "name": "TokenFallbackAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "safe",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "TokenFallbackRemoved",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -61,6 +194,68 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "BRIDGE_CALL_TYPEHASH",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "safe",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "bridgeFallbacks",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "target",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes4",
+          "name": "selector",
+          "type": "bytes4"
+        },
+        {
+          "internalType": "uint96",
+          "name": "tokenAddressIndex",
+          "type": "uint96"
+        },
+        {
+          "internalType": "uint96",
+          "name": "amountIndex",
+          "type": "uint96"
+        },
+        {
+          "internalType": "uint96",
+          "name": "vaultAddressIndex",
+          "type": "uint96"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "contract Safe",
@@ -85,13 +280,61 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "fallbackRegister",
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "safe",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "getFallback",
       "outputs": [
         {
-          "internalType": "contract IFallbackRegister",
-          "name": "",
-          "type": "address"
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "selector",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint96",
+              "name": "tokenAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "amountIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "vaultAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct TokenFallback.FallbackData",
+          "name": "fallbackData",
+          "type": "tuple"
         }
       ],
       "stateMutability": "view",
@@ -167,12 +410,12 @@
         },
         {
           "internalType": "bool",
-          "name": "fillCompleted",
+          "name": "",
           "type": "bool"
         },
         {
           "internalType": "address",
-          "name": "relayer",
+          "name": "",
           "type": "address"
         },
         {
@@ -200,7 +443,7 @@
         },
         {
           "internalType": "address",
-          "name": "relayer",
+          "name": "",
           "type": "address"
         },
         {
@@ -257,6 +500,50 @@
           "internalType": "bytes4",
           "name": "",
           "type": "bytes4"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "metadataHash",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "metadataProvider",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "providerType",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "location",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "name",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
         }
       ],
       "stateMutability": "view",
@@ -378,6 +665,95 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "removeTokenFallback",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "requiresPermissions",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "permissions",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "requiresRootAccess",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "selector",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint96",
+              "name": "tokenAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "amountIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "vaultAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct TokenFallback.FallbackData",
+          "name": "fallbackData",
+          "type": "tuple"
+        }
+      ],
+      "name": "setTokenFallback",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "targetContract",
           "type": "address"
         },
@@ -453,6 +829,19 @@
       "name": "tokensReceived",
       "outputs": [],
       "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     }
   ],

@@ -1,6 +1,6 @@
 const Contracts = {
   OmnaccountModule: "OmnaccountModule",
-  OmnaccountFallback: "OmnaccountFallback",
+  UniFiPlugin: "UniFiPlugin",
 };
 
 export { Contracts };

@@ -13,10 +13,19 @@ const NavHeader = () => {
         <Anchor
           className="deploy-nav-link"
           underline="never"
+          href="/"
           size="lg"
           style={{ color: 'white' }}
         >
           Deploy
+        </Anchor>
+        <Anchor href="/swap"
+          className="deploy-nav-link"
+          underline="never"
+          size="lg"
+          style={{ color: 'white' }}
+        >
+          Cross-chain Spending
         </Anchor>
       </Center>
 

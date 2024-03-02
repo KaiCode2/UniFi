@@ -1,3 +1,5 @@
+import protocolKit from '@safe-global/protocol-kit';
+
 import spokePoolAbi from '../../../contracts/artifacts/@across-protocol/contracts-v2/contracts/interfaces/V3SpokePoolInterface.sol/V3SpokePoolInterface.json';
 
 import erc20Abi from '../utils/abis/erc20.json';
@@ -31,7 +33,7 @@ import {
 } from '../utils/tokens';
 import { RPC_URLS, SUPPORTED_NETWORKS } from '../utils/chains';
 import {
-  BASE_SEPOLIA_SPOKE_POOL,
+  SPOKE_POOLS,
   addNetwork,
   getEnvironmentWebsiteUrl,
 } from '../utils/helpers';
@@ -395,11 +397,6 @@ const SwapPage = () => {
       </Flex>
       <Button
         onClick={async () => {
-          let ethAdapter = new EthersAdapter({
-            ethers,
-            signerOrProvider: signer,
-          });
-
           // let safeSdk = await SafeFactory.create({ ethAdapter });
           const vaults: DeployedVaults = JSON.parse(
             localStorage.getItem('vaults')
@@ -428,25 +425,19 @@ const SwapPage = () => {
                 ],
               })
               .then(async () => {
-                const provider = new ethers.BrowserProvider(
-                  // @ts-expect-error
-                  window?.ethereum
-                );
-
-                // set new signer with newly added network
-                const walletWithNewNetwork = await provider.getSigner();
-                // walletWithNewNetwork.connect(
-                //   new ethers.JsonRpcProvider(RPC_URLS[spendNetwork])
-                // );
-
-                ethAdapter = new EthersAdapter({
+                const ethAdapter = new EthersAdapter({
                   ethers,
-                  signerOrProvider: walletWithNewNetwork,
+                  signerOrProvider: signer,
                 });
 
                 const spendVaultAddress = vaults[spendNetwork].address;
                 // Safe.
-                const spendVault = await Safe.create({
+                let spendVault = await Safe.create({
+                  ethAdapter,
+                  safeAddress: spendVaultAddress,
+                });
+
+                spendVault = await spendVault.connect({
                   ethAdapter,
                   safeAddress: spendVaultAddress,
                 });
@@ -463,77 +454,78 @@ const SwapPage = () => {
                 //     color: 'green',
                 //   });
 
-                console.log(`SPEND VAULT ADDRESS`, spendVaultAddress);
-                console.log(`SPEND VAULT `, spendVault);
-                console.log(`SPEND VAULT `, await spendVault.getAddress());
-
                 // we've sent ETH to vault
                 // now bundle vault txs
-                const wethOnSpendNet = WETH_ON_NETWORK[spendNetwork];
-                console.log(`weth on spend net`, wethOnSpendNet);
 
-                const safeTx = await spendVault.createTransaction({
-                  transactions: [
-                    {
-                      to: ethers.getAddress(wethOnSpendNet),
-                      // @ts-ignore
-                      value: 1000000000000000,
-                      data: '',
-                    },
-                  ],
-                });
-                const signedTx = await spendVault.signTransaction(safeTx);
-                const tx = await spendVault.executeTransaction(signedTx);
-                console.log(tx);
-                // const batchTransactions = [
-                //   {
-                //     // WRAP ETH
-                //     to: wethOnSpendNet,
-                //     // value: ethers.parseUnits('0.01', 'ether'),
-                //     value: '1000000000',
-                //     data: '',
-                //   },
-                // approve bridge for weth spend
-                // {
-                //   to: wethOnSpendNet,
-                //   value: ethers.parseUnits('0.01', 'ether'),
-                //   data: ethers.Interface.from(erc20Abi).encodeFunctionData(
-                //     'approve',
-                //     [BASE_SEPOLIA_SPOKE_POOL, ethers.MaxUint256]
-                //   ),
-                // },
-                // bridge with deposit v3
-                // ];
+                const wethOnSpendNet = WETH_ON_NETWORK[spendNetwork];
+
+                console.log(SPOKE_POOLS[spendNetwork]);
+                const spokePoolContract = new ethers.Contract(
+                  SPOKE_POOLS[spendNetwork],
+                  spokePoolAbi.abi,
+                  signer
+                );
+
+                const bridgeTx =
+                  await spokePoolContract.depositV3.populateTransaction(
+                    spendVaultAddress,
+                    vaults[currentNetwork].address,
+                    wethOnSpendNet,
+                    ethers.ZeroAddress,
+                    BigInt(10000000000000000),
+                    BigInt(8000000000000000),
+                    // BigInt(1 * 10 ** 16),
+                    // BigInt(8 * 10 ** 15),
+                    +currentNetwork,
+                    ethers.ZeroAddress,
+                    Math.ceil(Date.now() / 1000),
+                    Math.ceil(Date.now() / 1000) + 1800,
+                    0,
+                    '0x'
+                  );
+
+                const batchTransactions = [
+                  // {
+                  //   // WRAP ETH
+                  //   to: wethOnSpendNet,
+                  //   value: '10000000000000000',
+                  //   data: '0x',
+                  // },
+                  // // approve bridge for weth spend
+                  // {
+                  //   to: wethOnSpendNet,
+                  //   // value: ethers.parseUnits('0.01', 'ether'),
+                  //   value: 0,
+                  //   data: ethers.Interface.from(erc20Abi).encodeFunctionData(
+                  //     'approve',
+                  //     [SPOKE_POOLS[spendNetwork], ethers.MaxUint256]
+                  //   ),
+                  // },
+                  {
+                    to: bridgeTx.to,
+                    // value: ethers.parseUnits('0.01', 'ether'),
+                    value: '10000000000000000',
+                    data: bridgeTx.data,
+                  },
+                  // bridge with deposit v3
+                ];
 
                 // console.log(batchTransactions);
 
-                // // from vault
-                // const bundledTxs = await spendVault.createTransaction({
-                //   transactions: batchTransactions,
-                //   // onlyCalls: true,
+                // amount, destinationChainId, originChainId, token;
+                // const quoteForBridge = await fetch(`/api/getQuoteForBridge`, {
+                //   method: 'POST',
+                //   body: JSON.stringify({amount}),
                 // });
+
+                // // from vault
+                const bundledTxs = await spendVault.createTransaction({
+                  transactions: batchTransactions,
+                  onlyCalls: true,
+                  options: { safeTxGas: '400000' },
+                });
                 // console.log(`BUNDLED DATA`, bundledTxs.data);
 
-                // {
-                //   to: BASE_SEPOLIA_SPOKE_POOL,
-                //   value: ethers.parseUnits('0.01', 'ether'),
-                //   data: new ethers.Interface(
-                //     spokePoolAbi.abi
-                // ).encodeFunctionData('depositV3', [
-                //   spendVaultAddress,
-                //   vaults[currentNetwork].address,
-                //   wethOnSpendNet,
-                //   ethers.ZeroAddress,
-                //   BigInt(1 * 10 ** 16),
-                //   BigInt(8 * 10 ** 15),
-                //   currentNetwork,
-                //   ethers.ZeroAddress,
-                //   Math.ceil(Date.now() / 1000) + 5,
-                //   Math.ceil(Date.now() / 1000) + 86_400,
-                //   0,
-                //   '',
-                // ]),
-                // },
                 // NOTE:
                 // const bridgeData = new ethers.Interface(
                 //   spokePoolAbi.abi
@@ -553,10 +545,10 @@ const SwapPage = () => {
                 // ]);
                 // console.log(`Bridge data`, bridgeData);
 
-                // console.log(`bundled txs`, bundledTxs);
-                // const safeTx = await spendVault.executeTransaction(bundledTxs);
+                console.log(`bundled txs`, bundledTxs);
+                const safeTx = await spendVault.executeTransaction(bundledTxs);
 
-                // console.log(`SAFE TX`, safeTx);
+                console.log(`SAFE TX`, safeTx);
               });
           } catch (err) {
             console.log(`ERROR reason`, err.reason);

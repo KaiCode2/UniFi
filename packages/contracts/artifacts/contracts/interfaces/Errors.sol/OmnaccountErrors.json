@@ -1,0 +1,32 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "OmnaccountErrors",
+  "sourceName": "contracts/interfaces/Errors.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "InvalidBridge",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidEntryPoint",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "safe",
+          "type": "address"
+        }
+      ],
+      "name": "ModuleNotEnabled",
+      "type": "error"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

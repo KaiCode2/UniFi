@@ -1,0 +1,135 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IFallbackRegister",
+  "sourceName": "contracts/interfaces/IFallbackRegister.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "safe",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "getFallback",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "selector",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint96",
+              "name": "tokenAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "amountIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "vaultAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct TokenFallback.FallbackData",
+          "name": "fallbackData",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "removeTokenFallback",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "target",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "selector",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint96",
+              "name": "tokenAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "amountIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "uint96",
+              "name": "vaultAddressIndex",
+              "type": "uint96"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct TokenFallback.FallbackData",
+          "name": "fallbackData",
+          "type": "tuple"
+        }
+      ],
+      "name": "setTokenFallback",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

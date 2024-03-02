@@ -43,8 +43,10 @@ const mumbaiRpcUrl =
     : undefined) ??
   "https://polygon-mumbai-pokt.nodies.app"
 
-const sepoliaRpcUrl = `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
-const arbSepoliaRpcUrl = "https://arbitrum-sepolia.blockpi.network/v1/rpc/public";
+const opSepoliaRpcUrl = process.env.OP_SEPOLIA_RPC_URL ?? "https://optimism-sepolia.blockpi.network/v1/rpc/public";
+const baseSepoliaRpcUrl = process.env.BASE_SEPOLIA_RPC_URL ?? "https://eth-sepolia.g.alchemy.com/v2/your-api-key";
+const sepoliaRpcUrl = process.env.SEPOLIA_RPC_URL ?? `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const arbSepoliaRpcUrl = process.env.ARB_SEPOLIA_RPC_URL ?? "https://arbitrum-sepolia.blockpi.network/v1/rpc/public";
 
 
 const config: HardhatUserConfig = {
@@ -88,6 +90,7 @@ const config: HardhatUserConfig = {
     mumbai: {
       url: mumbaiRpcUrl,
       accounts,
+      chainId: 80001,
       saveDeployments: true,
       deploy: ["deploy/public"],
       live: true,
@@ -95,6 +98,7 @@ const config: HardhatUserConfig = {
     sepolia: {
       url: sepoliaRpcUrl,
       accounts,
+      chainId: 11155111,
       saveDeployments: true,
       deploy: ["deploy/public"],
       live: true,
@@ -102,6 +106,23 @@ const config: HardhatUserConfig = {
     arbitrumSepolia: {
       url: arbSepoliaRpcUrl,
       accounts,
+      chainId: 421614,
+      saveDeployments: true,
+      deploy: ["deploy/public"],
+      live: true,
+    },
+    opSepolia: {
+      url: opSepoliaRpcUrl,
+      accounts,
+      chainId: 11155420,
+      saveDeployments: true,
+      deploy: ["deploy/public"],
+      live: true,
+    },
+    baseSepolia: {
+      url: baseSepoliaRpcUrl,
+      accounts,
+      chainId: 84532,
       saveDeployments: true,
       deploy: ["deploy/public"],
       live: true,
@@ -120,6 +141,8 @@ const config: HardhatUserConfig = {
       default: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
       sepolia: "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
       arbitrumSepolia: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
+      opSepolia: "0x4e8E101924eDE233C13e2D8622DC8aED2872d505",
+      baseSepolia: "0x82B564983aE7274c86695917BBf8C99ECb6F0F8F",
     },
     entrypoint: {
       default: 8, // TODO: Update
@@ -128,7 +151,8 @@ const config: HardhatUserConfig = {
       default: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
       sepolia: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
       arbitrumSepolia: "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
-      // sepoliaBase: "",
+      opSepolia: "0x4200000000000000000000000000000000000006",
+      baseSepolia: "0x4200000000000000000000000000000000000006",
     },
     relayer: 9,
   },

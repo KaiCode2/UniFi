@@ -13,10 +13,10 @@ export const SWAP_TOKENS = {
   // Base Sepolia
   '0x14a33': {
     // TODO: add token and LP to base sepolia
-    'SHIB-WETH': {
+    'Base SHIB-WETH': {
       tokenAddress: '0x62A3F555d3EF10F395Dec69B9f8026B5aD01019C',
       lpWithEth: '0x0465CdCF79dB9a416F3e94923607a98d44a5dA68',
-      name: 'Shib on ETH Sepolia',
+      name: 'Shib on Base Sepolia',
       logo: shibaLogo.src,
     },
   },

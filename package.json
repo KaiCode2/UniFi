@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@across-protocol/sdk-v2": "^0.22.6"
+  }
+}

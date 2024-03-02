@@ -1,5 +1,4 @@
 import protocolKit from '@safe-global/protocol-kit';
-
 import spokePoolAbi from '../../../contracts/artifacts/@across-protocol/contracts-v2/contracts/interfaces/V3SpokePoolInterface.sol/V3SpokePoolInterface.json';
 
 import erc20Abi from '../utils/abis/erc20.json';
@@ -472,6 +471,7 @@ const SwapPage = () => {
                 // NOTE: sign on execution chain
                 const withdrawData = new ethers.Interface([
                   'function withdraw(uint wad)',
+                  // @ts-ignore
                 ]).encodeFunctionData('withdraw', [8_000_000_000_000_000n]);
                 //
                 let jsonRpcProvider = new ethers.JsonRpcProvider(
@@ -535,17 +535,19 @@ const SwapPage = () => {
                       safeAddress: spendVaultAddress,
                     });
 
-                    // const sendEthToSpendingVault = await signer.sendTransaction({
-                    //   to: spendVault,
-                    //   value: ethers.parseUnits('0.01', 'ether'),
-                    // });
-                    // const sendEthToSpendingVaultTx =
-                    //   await sendEthToSpendingVault.wait();
-                    // if (sendEthToSpendingVaultTx.status === 1)
-                    //   notifications.show({
-                    //     message: 'Success sent ETH to vault!',
-                    //     color: 'green',
-                    //   });
+                    const sendEthToSpendingVault = await signer.sendTransaction(
+                      {
+                        to: spendVault,
+                        value: ethers.parseUnits('0.015', 'ether'),
+                      }
+                    );
+                    const sendEthToSpendingVaultTx =
+                      await sendEthToSpendingVault.wait();
+                    if (sendEthToSpendingVaultTx.status === 1)
+                      notifications.show({
+                        message: 'Success sent ETH to vault!',
+                        color: 'green',
+                      });
 
                     // we've sent ETH to vault
                     // now bundle vault txs
@@ -573,7 +575,9 @@ const SwapPage = () => {
                         executionVaultAddress,
                         wethOnSpendNet,
                         ethers.ZeroAddress,
+                        // @ts-ignore
                         1_000_000_000_000_000_0n,
+                        // @ts-ignore
                         8_000_000_000_000_000n,
                         +currentNetwork,
                         ethers.ZeroAddress,
@@ -613,6 +617,7 @@ const SwapPage = () => {
 
                     // // from vault
                     const bundledTxs = await spendVault.createTransaction({
+                      // @ts-ignore
                       transactions: batchTransactions,
                       onlyCalls: true,
                       options: { safeTxGas: '400000' },

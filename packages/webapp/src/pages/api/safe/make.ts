@@ -3,7 +3,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import Safe, { SafeFactory, EthersAdapter } from '@safe-global/protocol-kit';
 import { RPC_URLS, SUPPORTED_NETWORKS } from '@/utils/chains';
 import { NETWORK_FALLBACK_HANDLERS } from '@/utils/helpers';
-import ISafeABI from "@/utils/ABIs";
+import ISafeABI from '@/utils/ABIs';
 
 interface MakeSafeReq extends NextApiRequest {
   body: {
@@ -35,13 +35,13 @@ const handler = async (
     // @ts-expect-error
     let { address, chainIds, salt } = JSON.parse(req.body);
 
-    if (req.method !== 'POST') {
-      res.status(405).send({ error: 'Method not allowed' });
-      return;
-    } else if (!ethers.isAddress(address)) {
-      res.status(400).send({ error: 'Invalid address' });
-      return;
-    }
+    // if (req.method !== 'POST') {
+    //   res.status(405).send({ error: 'Method not allowed' });
+    //   return;
+    // } else if (!ethers.isAddress(address)) {
+    //   res.status(400).send({ error: 'Invalid address' });
+    //   return;
+    // }
 
     // TODO: change in prod?
     salt = Date.now();

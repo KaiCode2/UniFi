@@ -1,39 +1,35 @@
-import { ethers } from "ethers";
-import Safe, { EthersAdapter, SafeFactory } from "@safe-global/protocol-kit";
-
-import { useContext, useState } from "react";
-import { SignerContext } from "../Context/Signer";
-import { Button } from "@mantine/core";
-import { chainNames } from "../utilities/chains";
-import ConnectWalletButton, {
-  connectWallet,
-} from "../components/connectWallet";
-
-import { SafeTransaction } from "@safe-global/safe-core-sdk-types";
-// import { SafeAccountConfig } from "@safe-global/protocol-kit";
-
-import { SafeAccountConfig } from "@safe-global/protocol-kit";
-
-const chainIds = [11155111, 421614, 11155420];
+import { ethers } from 'ethers';
+import { useContext, useEffect, useState } from 'react';
+import { SignerContext } from '../Context/Signer';
+import { Box, Button, Center, Select, Title } from '@mantine/core';
+import { selectableChains, SUPPORTED_NETWORKS } from '../utils/chains';
+import theme from '../utils/theme';
+import Safe, { EthersAdapter, SafeFactory } from '@safe-global/protocol-kit';
+import { SafeAccountConfig } from '@safe-global/protocol-kit';
+import { notifications } from '@mantine/notifications';
+import { decimalToHexChainId } from '../utils/helpers';
+import { CurrentNetworkContext } from '../Context/CurrentNetwork';
+import React from 'react';
 
 const DeployVaultButton = () => {
-  const { signer } = useContext(SignerContext);
-  const [selectedChain, setSelectedChain] = useState<number | null>(null);
+  const { signer, setSigner } = useContext(SignerContext);
+  const { currentNetwork, setCurrentNetwork } = useContext(
+    CurrentNetworkContext
+  );
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
   const deployVault = async () => {
-    if (selectedChain === null) {
-      setError("Please select a chain to deploy the vault.");
-      return;
-    }
-
     setLoading(true);
-    setError(null);
-
-    const provider = new ethers.JsonRpcProvider(
-      "https://eth-sepolia.g.alchemy.com/v2/demo"
-    );
 
     try {
       const safeAccountConfig: SafeAccountConfig = {
@@ -45,76 +41,109 @@ const DeployVaultButton = () => {
         ethers,
         signerOrProvider: signer,
       });
-
+      // allows us to deploy vaults w/ Safe
       const safeFactory = await SafeFactory.create({ ethAdapter });
+      console.log(`after factory`);
+      // // @ts-expect-error
+      // const safeSdk = await Safe.create({
+      //   ethAdapter,
+      //   safeAddress: signer.address,
 
-      // @ts-expect-error
-      const safeSdk = await Safe.create({
-        ethAdapter,
-        safeAddress: signer.address,
+      //   predictedSafe: {
+      //     safeAccountConfig,
+      //   },
+      // });
 
-        predictedSafe: {
-          safeAccountConfig,
-        },
-      });
+      const safeSdk: Safe = await safeFactory.deploySafe({ safeAccountConfig });
 
-      const deployed = await safeFactory.deploySafe({ safeAccountConfig });
-      console.log("deployed?", deployed);
+      console.log('safe vault', safeSdk);
+      const newSafeAddress = await safeSdk.getAddress();
+      console.log(`new vault address`, newSafeAddress);
 
-      console.log("Vault deployed successfully on chain:", selectedChain);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to deploy vault:", error);
-      setError("Failed to deploy vault. Please try again.");
+      console.log(error);
+      notifications.show({
+        color: 'red',
+        message: error?.reason,
+      });
+
       setLoading(false);
     }
   };
 
-  const handleChainSelect = (chainId: number) => {
-    setSelectedChain(chainId);
-  };
-
   return (
-    <>
-      <Button
-        style={{
-          borderRadius: "100px",
-        }}
-        variant="light"
-        color="rgba(255, 255, 255, 1)"
-        onClick={deployVault}
-        disabled={!selectedChain || loading}
-      >
-        {loading ? "Deploying..." : "Deploy Vault"}
-      </Button>
-      {error && <p>{error}</p>}
-      {selectedChain === null && (
-        <div>
-          <p>Select chain to deploy vault:</p>
-          {chainIds.map(
-            (chainId) => (
-              console.log(chainNames),
-              (
-                <Button
-                  style={{
-                    display: "inline-block",
-                    marginRight: "10px",
-                    borderRadius: "100px",
-                  }}
-                  variant="light"
-                  color="rgba(255, 255, 255, 1)"
-                  key={chainId}
-                  onClick={() => handleChainSelect(chainId)}
-                  disabled={!signer || loading}
-                >
-                  Chain: {chainNames[chainId]}
-                </Button>
-              )
-            )
-          )}
-        </div>
-      )}
-    </>
+    <Center pt="5%" style={{ flexDirection: 'column' }}>
+      <Box w={400}>
+        <Select
+          disabled={!signer}
+          value={currentNetwork}
+          label="Chain to create wallet on"
+          placeholder="e.g. Ethereum"
+          onChange={async (e) => {
+            if (e) {
+              try {
+                // switch to chain they want to deploy vault on
+                // @ts-expect-error
+                await window?.ethereum.request({
+                  method: 'wallet_switchEthereumChain',
+                  params: [
+                    {
+                      // this is ETH sepolia tesnet
+                      chainId: e,
+                    },
+                  ],
+                });
+                // NOTE: refresh the signer with new network connection
+                // @ts-expect-error
+                const provider = new ethers.BrowserProvider(window?.ethereum);
+                const signerWithNewNetwork = await provider.getSigner();
+                setSigner(signerWithNewNetwork);
+              } catch (err) {
+                // add network if they don't have it added to metamask
+                if (err.code == 4902) {
+                  const { name, decimals, symbol, rpcUrl } =
+                    SUPPORTED_NETWORKS[e].token;
+                  console.log(SUPPORTED_NETWORKS[e]);
+                  // @ts-expect-error
+                  await window?.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [
+                      {
+                        chainName: SUPPORTED_NETWORKS[e].chainName,
+                        chainId: e,
+                        nativeCurrency: {
+                          name,
+                          decimals,
+                          symbol,
+                        },
+                        rpcUrls: [rpcUrl],
+                      },
+                    ],
+                  });
+                  // @ts-expect-error
+                  const provider = new ethers.BrowserProvider(window?.ethereum);
+                  const signerWithNewNetwork = await provider.getSigner();
+                  setSigner(signerWithNewNetwork);
+                }
+              }
+              setCurrentNetwork(e);
+            }
+          }}
+          data={selectableChains}
+        />
+        <Button
+          mt={10}
+          fullWidth
+          loading={loading}
+          color={theme.styles.colors.teal}
+          onClick={deployVault}
+          disabled={!currentNetwork || !signer}
+        >
+          Deploy Vault
+        </Button>
+      </Box>
+    </Center>
   );
 };
 

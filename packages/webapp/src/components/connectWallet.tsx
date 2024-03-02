@@ -1,69 +1,65 @@
-import React, { useContext } from "react";
-import { ethers } from "ethers";
-import { SignerContext } from "../Context/Signer";
-import { chainIds, getChainInfo } from "../utilities/chains";
+import React, { useContext } from 'react';
+import { ethers } from 'ethers';
+import { SignerContext } from '../Context/Signer';
 
-// const chainId1 = 11155111;
-// const chainInfo1 = getChainInfo(chainId1);
-// console.log(chainInfo1.name);
-// console.log(chainInfo1.providerUrl);
-
-// const chainId2 = 421614;
-// const chainInfo2 = getChainInfo(chainId2);
-// console.log(chainInfo2.name);
-// console.log(chainInfo2.providerUrl);
-
-// const chainId3 = 11155420;
-// const chainInfo3 = getChainInfo(chainId3);
-// console.log(chainInfo3.name);
-// console.log(chainInfo3.providerUrl);
+import { Button, Text, Title } from '@mantine/core';
+import theme from '../utils/theme';
+import { decimalToHexChainId } from '../utils/helpers';
+import { SUPPORTED_NETWORKS } from '../utils/chains';
+import { CurrentNetworkContext } from '../Context/CurrentNetwork';
 
 const ConnectWalletButton = () => {
   const { setSigner, signer } = useContext(SignerContext);
-  console.log(signer);
-  return (
-    <button
-      onClick={async (e) => {
-        e.preventDefault();
+  const { currentNetwork, setCurrentNetwork } = useContext(
+    CurrentNetworkContext
+  );
+
+  return signer ? (
+    <Text size="md">{`${signer.address.slice(0, 5)}...${signer.address.slice(
+      -4
+    )}`}</Text>
+  ) : (
+    <Button
+      radius="xl"
+      // color="violet"
+      style={{ background: theme.styles.colors.teal }}
+      onClick={async () => {
         // @ts-expect-error
         if (window.ethereum) {
-          console.log("ethers", ethers);
           // @ts-expect-error
           const provider = new ethers.BrowserProvider(window?.ethereum);
-          const { chainId } = await provider.getNetwork();
-          console.log(chainId);
+          const { chainId: chainNumber } = await provider.getNetwork();
+          // @ts-expect-error
+          const chainId = decimalToHexChainId(chainNumber);
 
-          try {
-            const accounts = await provider.send("eth_requestAccounts", []);
-            const walletSigner = await provider.getSigner();
-            console.log(walletSigner);
-            setSigner(walletSigner);
-          } catch (error) {
-            if (error.code === 4001) {
-              alert("User rejected wallet connection");
-              console.log("User rejected wallet connection");
-            } else {
-              console.error("Error connecting wallet:", error);
-            }
-          }
-          if (!chainIds[String(chainId)]) {
+          // TODO: add support for multiple wallets (if need be)
+          await provider.send('eth_requestAccounts', []);
+          const walletSigner = await provider.getSigner();
+          setSigner(walletSigner);
+          console.log(`current chainID`, chainId);
+          if (!SUPPORTED_NETWORKS[chainId]) {
+            // @ts-expect-error
             await window.ethereum.request({
-              method: "wallet_switchEthereumChain",
+              method: 'wallet_switchEthereumChain',
               params: [
                 {
-                  chainId: "0xaa36a7",
+                  // this is ETH sepolia tesnet
+                  chainId: '0xaa36a7',
                 },
               ],
             });
+            setCurrentNetwork('0xaa36a7');
+            return;
           }
+          setCurrentNetwork(chainId);
         }
       }}
-      className="connect-button"
-      style={{ float: "right", borderRadius: "100px" }}
     >
       Connect Wallet
-    </button>
+    </Button>
   );
 };
 
 export default ConnectWalletButton;
+
+// 11155420n;

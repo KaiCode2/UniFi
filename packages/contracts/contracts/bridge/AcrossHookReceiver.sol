@@ -14,6 +14,7 @@ import {OmnaccountErrors as Errors} from "../interfaces/Errors.sol";
  */
 abstract contract AcrossHookReceiver is BridgeReceiver, IAcrossMessageHandler, HandlerContext {
 
+    /// @notice The address of the Across Bridge contract
     address public immutable ACROSS_BRIDGE;
 
     constructor(address bridge) {
@@ -29,8 +30,8 @@ abstract contract AcrossHookReceiver is BridgeReceiver, IAcrossMessageHandler, H
     function handleAcrossMessage(
         address tokenSent,
         uint256 amount,
-        bool fillCompleted,
-        address relayer,
+        bool,
+        address,
         bytes memory message
     ) external onlyBridge {
         _afterTokensBridged(tokenSent, amount, message);
@@ -39,7 +40,7 @@ abstract contract AcrossHookReceiver is BridgeReceiver, IAcrossMessageHandler, H
     function handleV3AcrossMessage(
         address tokenSent,
         uint256 amount,
-        address relayer,
+        address,
         bytes memory message
     ) external onlyBridge {
         _afterTokensBridged(tokenSent, amount, message);

@@ -4,7 +4,7 @@ import {
   SingletonFactoryInfo,
 } from "@safe-global/safe-singleton-factory";
 import {
-  getOmnaccountFallbackBytecode,
+  getUniFiPluginBytecode,
   getOmnaccountModuleBytecode,
 } from "@/deploy/utils/deploy_singleton";
 import deploySafeProxy, {
@@ -19,11 +19,12 @@ import { getCreate2Address, keccak256, ZeroHash } from "ethers";
 import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces/ISafe__factory";
 import { IERC20__factory, OmnaccountModule__factory, V3SpokePoolInterface__factory } from "@/typechain-types";
 import execSafeTransaction from "@/deploy/utils/exec_transaction";
-import { Constants, delay } from "@/utils";
+import { Constants, delay, signatures } from "@/utils";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   ContractNetworksConfig,
   EthersAdapter,
+  hashSafeMessage,
 } from "@safe-global/protocol-kit";
 import {
   getMultiSendCallOnlyDeployment,
@@ -51,31 +52,31 @@ task("safe:make", "Makes a new safe")
       let { address: omnaccountModuleAddress } = await deployments.get(
         Constants.Contracts.OmnaccountModule
       );
-      let { address: omnaccountFallbackAddress } = await deployments.get(
-        Constants.Contracts.OmnaccountFallback
+      let { address: UniFiPluginAddress } = await deployments.get(
+        Constants.Contracts.UniFiPlugin
       );
 
       const {
         safeMastercopyAddress,
         safeProxyFactoryAddress,
         omnaccountModuleAddress: predictedOmnaccountModuleAddress,
-        omnaccountFallbackAddress: predictedOmnaccountFallbackAddress,
+        UniFiPluginAddress: predictedUniFiPluginAddress,
       } = await getAddresses(factoryAddress, spokePool);
 
       omnaccountModuleAddress =
         omnaccountModuleAddress ?? predictedOmnaccountModuleAddress;
-      omnaccountFallbackAddress =
-        omnaccountFallbackAddress ?? predictedOmnaccountFallbackAddress;
+      UniFiPluginAddress =
+        UniFiPluginAddress ?? predictedUniFiPluginAddress;
 
       // TODO: Check these addresses exist
 
       console.log(`Safe mastercopy: ${safeMastercopyAddress}`);
       console.log(`Safe proxy factory: ${safeProxyFactoryAddress}`);
       console.log(`Omnaccount module: ${omnaccountModuleAddress}`);
-      console.log(`Omnaccount fallback: ${omnaccountFallbackAddress}`);
+      console.log(`Omnaccount fallback: ${UniFiPluginAddress}`);
 
       const safeAddress = calculateProxyAddress(
-        calculateInitializer(owner, omnaccountFallbackAddress),
+        calculateInitializer(owner, UniFiPluginAddress),
         safeProxyFactoryAddress,
         safeMastercopyAddress
       );
@@ -90,7 +91,7 @@ task("safe:make", "Makes a new safe")
             safeMastercopyAddress,
             owner,
             ownerSigner,
-            omnaccountFallbackAddress
+            UniFiPluginAddress
           );
           if (network.live) await delay(5_000);
         }
@@ -109,11 +110,11 @@ task("safe:make", "Makes a new safe")
         );
         if (network.live) await delay(5_000);
       }
-      if (!(await safe.isModuleEnabled(omnaccountFallbackAddress))) {
+      if (!(await safe.isModuleEnabled(UniFiPluginAddress))) {
         console.log("Enabling fallback module...");
         await execSafeTransaction(
           safe,
-          await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+          await safe.enableModule.populateTransaction(UniFiPluginAddress),
           ownerSigner
         );
         if (network.live) await delay(5_000);
@@ -131,18 +132,22 @@ task("safe:make", "Makes a new safe")
 task("safe:sign", "Signs a safe transaction")
   .addPositionalParam("to", "Transaction destination")
   .addPositionalParam("data", "Transaction data")
+  .addPositionalParam("chainId", "Chain ID")
+  .addPositionalParam("nonce", "Receiving vault's nonce")
   .addOptionalParam("value", "Transaction value")
   .setAction(
     async (
-      args: TaskArguments,
-      { getNamedAccounts, ethers }: HardhatRuntimeEnvironment
+      { to, data, chainId, nonce, value }: TaskArguments,
+      { getNamedAccounts, ethers, deployments }: HardhatRuntimeEnvironment
     ) => {
       const { owner, spokePool } = await getNamedAccounts();
       const ownerSigner = await ethers.getSigner(owner);
 
-      const { chainId } = await ownerSigner.provider.getNetwork();
+      const vaultDeployment = await deployments.getOrNull("ISafe");
+
+      const { chainId: originChainId } = await ownerSigner.provider.getNetwork();
       const { address: factoryAddress } = getSingletonFactoryInfo(
-        Number(chainId)
+        Number(originChainId)
       ) as SingletonFactoryInfo;
       const {
         safeMastercopyAddress,
@@ -156,22 +161,62 @@ task("safe:sign", "Signs a safe transaction")
         safeMastercopyAddress
       );
 
-      const safe = ISafe__factory.connect(safeAddress, ownerSigner);
+      // const safe = ISafe__factory.connect(vaultDeployment?.address ?? safeAddress, ownerSigner);
       // const address = await safe.getAddress()
       // const nonce = await safe.nonce()
 
-      const tx = await execSafeTransaction(safe, args, ownerSigner);
+      const ethAdapter = new EthersAdapter({
+        ethers,
+        signerOrProvider: ownerSigner,
+      });
+      const multiSendAddress =
+        getMultiSendDeployment({ network: originChainId.toString() })?.defaultAddress ??
+        "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526";
+      const multiSendCallOnlyAddress =
+        getMultiSendCallOnlyDeployment({ network: originChainId.toString() })?.defaultAddress ??
+        "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
 
-      console.log(`Transaction sent: ${tx.hash}`);
+      // @ts-ignore
+      const contractNetworks: ContractNetworksConfig = {
+        // @ts-ignore
+        [originChainId.toString()]: {
+          multiSendAddress,
+          multiSendCallOnlyAddress,
+        },
+      };
+      const connection = await SafeSdk.default.create({
+        ethAdapter,
+        safeAddress: vaultDeployment?.address ?? safeAddress,
+        contractNetworks,
+      });
 
-      const receipt = await tx.wait();
+      const withdrawData = new ethers.Interface([
+        "function withdraw(uint wad)",
+      ]).encodeFunctionData("withdraw", [ethers.parseEther("1")]);
+      const dataStruct = signatures.makeBridgeTypedMessage(["0x4200000000000000000000000000000000000006"], [withdrawData], parseInt(nonce), chainId, to)
+      const message = connection.createMessage(dataStruct);
 
-      if (receipt && receipt.status === 0) {
-        console.error(`Transaction failed: ${tx.hash}`);
-        return;
-      } else {
-        console.log(`Transaction confirmed: ${tx.hash}`);
-      }
+      const signedMessage = await connection.signMessage(message);
+      console.log(signedMessage);
+
+      const encodedSigs = signedMessage.encodedSignatures()
+      console.log(encodedSigs)
+
+      const hashed = hashSafeMessage(dataStruct);
+      // safe.checkSignatures(hashed, signedMessage.signatures[0].data);
+
+      // const tx = await execSafeTransaction(safe, args, ownerSigner);
+
+      // console.log(`Transaction sent: ${tx.hash}`);
+
+      // const receipt = await tx.wait();
+
+      // if (receipt && receipt.status === 0) {
+      //   console.error(`Transaction failed: ${tx.hash}`);
+      //   return;
+      // } else {
+      //   console.log(`Transaction confirmed: ${tx.hash}`);
+      // }
     }
   );
 
@@ -451,11 +496,11 @@ async function getUserVault(signer: SignerWithAddress, spokePool: string) {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
     omnaccountModuleAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   } = await getAddresses(factoryAddress, spokePool);
 
   const safeAddress = calculateProxyAddress(
-    calculateInitializer(signer.address, omnaccountFallbackAddress),
+    calculateInitializer(signer.address, UniFiPluginAddress),
     safeProxyFactoryAddress,
     safeMastercopyAddress
   );
@@ -481,16 +526,16 @@ async function getAddresses(factory: string, spokePool: string) {
     ZeroHash,
     keccak256(getOmnaccountModuleBytecode(spokePool))
   );
-  const omnaccountFallbackAddress = getCreate2Address(
+  const UniFiPluginAddress = getCreate2Address(
     factory,
     ZeroHash,
-    keccak256(getOmnaccountFallbackBytecode(spokePool, omnaccountModuleAddress))
+    keccak256(getUniFiPluginBytecode(spokePool, omnaccountModuleAddress))
   );
 
   return {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
     omnaccountModuleAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   };
 }

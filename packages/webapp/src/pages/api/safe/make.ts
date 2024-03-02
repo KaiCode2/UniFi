@@ -1,9 +1,9 @@
-import { ethers } from 'ethers';
-import { NextApiRequest, NextApiResponse } from 'next';
-import Safe, { SafeFactory, EthersAdapter } from '@safe-global/protocol-kit';
-import { RPC_URLS, SUPPORTED_NETWORKS } from '@/utils/chains';
-import { NETWORK_FALLBACK_HANDLERS } from '@/utils/helpers';
-import ISafeABI from '../../../../../contracts/artifacts/contracts/interfaces/ISafe.sol/ISafe.json';
+import { ethers } from "ethers";
+import { NextApiRequest, NextApiResponse } from "next";
+import Safe, { SafeFactory, EthersAdapter } from "@safe-global/protocol-kit";
+import { RPC_URLS, SUPPORTED_NETWORKS } from "@/utils/chains";
+import { NETWORK_FALLBACK_HANDLERS } from "@/utils/helpers";
+import ISafeABI from "@/utils/ABIs";
 
 interface MakeSafeReq extends NextApiRequest {
   body: {
@@ -82,6 +82,27 @@ const handler = async (
             safeDeploymentConfig: { saltNonce: salt },
           },
         });
+        return {
+          chainId,
+          safe: {
+            address: predictedAddress,
+            isModuleEnabled: await deployedSafe.isModuleEnabled(
+              NETWORK_FALLBACK_HANDLERS[chainId]
+            ),
+          },
+        };
+      } else {
+        const safeContract = new ethers.Contract(predictedAddress, ISafeABI, provider);
+        return {
+          chainId,
+          safe: {
+            address: predictedAddress,
+            isModuleEnabled: await safeContract.isModuleEnabled(NETWORK_FALLBACK_HANDLERS[chainId])
+          },
+        };
+      }
+    })
+  );
 
         const safeIsDeployed = await safe.isSafeDeployed();
         console.log(`is safe already deployed?`, safeIsDeployed);

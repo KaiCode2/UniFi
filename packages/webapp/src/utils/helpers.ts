@@ -1,3 +1,6 @@
+import sepoliaFallbackHandler from '../../../contracts/deployments/sepolia/OmnaccountFallback.json';
+import baseSepoliaFallbackHandler from '../../../contracts/deployments/baseSepolia/OmnaccountFallback.json';
+
 export const decimalToHexChainId = (decimalChainId: number): string => {
   return '0x' + decimalChainId.toString(16);
 };
@@ -10,3 +13,9 @@ export const getEnvironmentWebsiteUrl = () =>
   process.env.NODE_ENV === 'production'
     ? PRODUCTION_WEBSITE_URL
     : DEVELOPMENT_WEBSITE_URL;
+
+export const NETWORK_FALLBACK_HANDLERS = {
+  // ETH Sepolia
+  '0xaa36a7': sepoliaFallbackHandler.address,
+  '0x14a33': baseSepoliaFallbackHandler.address,
+};

@@ -5,6 +5,9 @@ import { RPC_URLS, SUPPORTED_NETWORKS } from '@/utils/chains';
 import { NETWORK_FALLBACK_HANDLERS } from '@/utils/helpers';
 import ISafeABI from '@/utils/ABIs';
 
+
+export const maxDuration = 60;
+
 interface MakeSafeReq extends NextApiRequest {
   body: {
     address: string;

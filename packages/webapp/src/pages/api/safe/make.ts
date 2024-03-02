@@ -6,7 +6,9 @@ import { NETWORK_FALLBACK_HANDLERS } from '@/utils/helpers';
 import ISafeABI from '@/utils/ABIs';
 
 
-export const maxDuration = 60;
+export const config = {
+  maxDuration: 295,
+};
 
 interface MakeSafeReq extends NextApiRequest {
   body: {

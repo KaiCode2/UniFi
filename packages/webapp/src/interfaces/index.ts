@@ -1,3 +1,5 @@
+import { ChainIds } from '../utils/chains';
+
 export interface QuoteResponse {
   capitalFeePct: string;
   capitalFeeTotal: string;
@@ -55,4 +57,11 @@ export interface SearchedPool {
   txCount: string;
   volumeUSD: string;
   __typename: string;
+}
+
+export interface DeployedVaults {
+  [chain: string]: {
+    address: string;
+    isModuleEnabled: boolean;
+  };
 }

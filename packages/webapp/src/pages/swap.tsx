@@ -1,5 +1,12 @@
+import spokePoolAbi from '../../../contracts/artifacts/@across-protocol/contracts-v2/contracts/interfaces/V3SpokePoolInterface.sol/V3SpokePoolInterface.json';
+
+import erc20Abi from '../utils/abis/erc20.json';
+import safeVaultAbi from '../../../contracts/artifacts/contracts/interfaces/ISafe.sol/ISafe.json';
+import Safe, { SafeFactory, EthersAdapter } from '@safe-global/protocol-kit';
+import { notifications } from '@mantine/notifications';
 import { ChevronDown } from 'tabler-icons-react';
 import {
+  Checkbox,
   Text,
   Box,
   Button,
@@ -13,15 +20,32 @@ import {
   Accordion,
   NumberInput,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import NavHeader from '../components/Header';
 import { useContext, useEffect, useState } from 'react';
 import { CurrentNetworkContext } from '../Context/CurrentNetwork';
-import { SWAP_TOKENS } from '../utils/tokens';
-import { SUPPORTED_NETWORKS } from '../utils/chains';
-import { getEnvironmentWebsiteUrl } from '../utils/helpers';
+import {
+  SWAP_TOKENS,
+  WETH_ON_ETH_SEPOLIA,
+  WETH_ON_NETWORK,
+} from '../utils/tokens';
+import { RPC_URLS, SUPPORTED_NETWORKS } from '../utils/chains';
+import {
+  BASE_SEPOLIA_SPOKE_POOL,
+  addNetwork,
+  getEnvironmentWebsiteUrl,
+} from '../utils/helpers';
 import { SignerContext } from '../Context/Signer';
-import { SearchedPool, TokenBalance } from '../interfaces';
+import { DeployedVaults, SearchedPool, TokenBalance } from '../interfaces';
 import { ethers } from 'ethers';
+import BridgeExecuteModal from '@/components/modals/bridgeExecute';
+
+export type TokenToBuy = {
+  tokenAddress: string;
+  lpWithEth: string;
+  name: string;
+  logo: string;
+};
 
 const SwapPage = () => {
   const { currentNetwork, setCurrentNetwork } = useContext(
@@ -30,10 +54,14 @@ const SwapPage = () => {
   const { signer, setSigner } = useContext(SignerContext);
   const [tokensInWallet, setTokensInWallet] = useState<TokenBalance[]>([]);
   const [spendNetwork, setSpendNetwork] = useState<string>('');
-
   const [amountToBuy, setAmountToBuy] = useState(0);
-
+  const [spendToken, setSpendToken] = useState<TokenBalance | null>(null);
   const [vaults, setVaults] = useState();
+  const [opened, { open, close }] = useDisclosure(false);
+  const [currentTokenToSwapTo, setCurrentTokenToSwapTo] =
+    useState<TokenToBuy | null>(null);
+
+  const [safeSdk, setSafeSdk] = useState<Safe | null>();
 
   useEffect(() => {
     (async () => {
@@ -66,6 +94,24 @@ const SwapPage = () => {
       }
     })();
   }, [currentNetwork, spendNetwork]);
+
+  // for getting vaults for user
+  useEffect(() => {
+    if (signer) {
+      (async () => {
+        const getVaults = await fetch(`/api/safe`, {
+          method: 'POST',
+          body: JSON.stringify({
+            chainIds: Object.keys(SUPPORTED_NETWORKS),
+            salt: signer?.address,
+            address: signer?.address,
+          }),
+        });
+        const usersVaults = await getVaults.json();
+        setVaults(usersVaults);
+      })();
+    }
+  }, [signer]);
 
   return (
     <Box style={{ maxHeight: '100vh' }}>
@@ -100,7 +146,7 @@ const SwapPage = () => {
                 <Menu.Dropdown>
                   {Object.entries(SUPPORTED_NETWORKS).map((chainEntry, i) => {
                     const [chainId, configs] = chainEntry;
-                    console.log(chainId);
+
                     return (
                       <Menu.Item
                         onClick={() => {
@@ -123,47 +169,61 @@ const SwapPage = () => {
             </Center>
           </Center>
           <Divider mt={10} />
-          <Accordion>
-            {tokensInWallet?.map((token: TokenBalance) => {
-              return (
-                <Accordion.Item
-                  key={token.token_address}
-                  value={token.token_address}
-                >
-                  <Accordion.Control>
-                    <Center style={{ justifyContent: 'flex-start', gap: 10 }}>
-                      <Title style={{ fontWeight: 600 }} order={5}>
-                        {token.name}
-                      </Title>
-                    </Center>
-                  </Accordion.Control>
-                  <Accordion.Panel>
-                    <Text size="sm" c="dimmed">
-                      {/* @ts-expect-error */}
-                      Balance: {token.balance / 10 ** 18} ${token.symbol}
-                    </Text>
-                    <Box>
-                      <Button mt={5} color="cyan" fullWidth>
-                        Spend
-                      </Button>
-                    </Box>
-                  </Accordion.Panel>
-                </Accordion.Item>
-                // <Center
-                // style={{
-                //   width: '100%',
-                //   background: 'gray',
-                //   justifyContent: 'space-between',
-                //   }}
-                // >
-                //   <Text>{token?.name}</Text>
 
-                //   <Text>{(token?.balance / 10 ** 18).toFixed(2)}</Text>
-                // </Center>
-              );
-            })}
-          </Accordion>
+          {tokensInWallet?.map((token: TokenBalance, i) => {
+            return (
+              <Center
+                key={i}
+                style={{
+                  background:
+                    token.token_address === spendToken?.token_address
+                      ? '#5A5959'
+                      : '#2e2e2e',
+                  marginTop: 3,
+                  justifyContent: 'space-between',
+                  padding: 15,
+                }}
+              >
+                <Flex style={{ alignItems: 'baseline', gap: 5 }}>
+                  <Title style={{ fontWeight: 600 }} order={5}>
+                    {token.name}
+                  </Title>
+
+                  <Text size="xs" c="dimmed">
+                    {/* @ts-expect-error */}
+                    (Balance: {(token.balance / 10 ** 18).toPrecision(2)} $
+                    {token.symbol})
+                  </Text>
+                </Flex>
+                <Box>
+                  <Checkbox
+                    mt={10}
+                    onChange={() => {
+                      if (token.token_address === spendToken?.token_address) {
+                        setSpendToken(null);
+                      } else setSpendToken(token);
+                    }}
+                    checked={token.token_address === spendToken?.token_address}
+                    label="Spend"
+                    labelPosition="left"
+                  />
+                </Box>
+              </Center>
+              // <Center
+              // style={{
+              //   width: '100%',
+              //   background: 'gray',
+              //   justifyContent: 'space-between',
+              //   }}
+              // >
+              //   <Text>{token?.name}</Text>
+
+              //   <Text>{(token?.balance / 10 ** 18).toFixed(2)}</Text>
+              // </Center>
+            );
+          })}
         </Box>
+
         <Divider orientation="vertical" />
         <Box style={{ width: '50%', paddingTop: 10 }}>
           <Center px={10} style={{ justifyContent: 'space-between' }}>
@@ -194,11 +254,10 @@ const SwapPage = () => {
                 <Menu.Dropdown>
                   {Object.entries(SUPPORTED_NETWORKS).map((chainEntry, i) => {
                     const [chainId, configs] = chainEntry;
-                    console.log(`new chainId`, chainId);
+
                     return (
                       <Menu.Item
                         onClick={async () => {
-                          console.log();
                           try {
                             // switch to chain they want to deploy vault on
                             // @ts-expect-error
@@ -223,26 +282,7 @@ const SwapPage = () => {
                           } catch (err) {
                             // add network if they don't have it added to metamask
                             if (err.code == 4902) {
-                              const { name, decimals, symbol, rpcUrl } =
-                                SUPPORTED_NETWORKS[chainId].token;
-                              console.log(SUPPORTED_NETWORKS[chainId]);
-                              // @ts-expect-error
-                              await window?.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [
-                                  {
-                                    chainName:
-                                      SUPPORTED_NETWORKS[chainId].chainName,
-                                    chainId,
-                                    nativeCurrency: {
-                                      name,
-                                      decimals,
-                                      symbol,
-                                    },
-                                    rpcUrls: [rpcUrl],
-                                  },
-                                ],
-                              });
+                              addNetwork(chainId);
                               const provider = new ethers.BrowserProvider(
                                 // @ts-expect-error
                                 window?.ethereum
@@ -316,7 +356,25 @@ const SwapPage = () => {
                               label={configs.name}
                               placeholder="Enter amount of tokens to purchase"
                             />
-                            <Button mt={5} color="teal" fullWidth>
+                            <Button
+                              onClick={() => {
+                                if (spendToken) {
+                                  return notifications.show({
+                                    color: 'red',
+                                    message:
+                                      'Please select a token to spend with.',
+                                  });
+                                }
+                                open();
+                                // @ts-expect-error
+                                setCurrentTokenToSwapTo(configs);
+                                // open modal
+                                //
+                              }}
+                              mt={5}
+                              color="teal"
+                              fullWidth
+                            >
                               Buy
                             </Button>
                           </Box>
@@ -326,9 +384,200 @@ const SwapPage = () => {
                   }
                 )}
             </Accordion>
+            <BridgeExecuteModal
+              spendToken={spendToken}
+              tokenToBuy={currentTokenToSwapTo}
+              opened={opened}
+              close={close}
+            />
           </Box>
         </Box>
       </Flex>
+      <Button
+        onClick={async () => {
+          let ethAdapter = new EthersAdapter({
+            ethers,
+            signerOrProvider: signer,
+          });
+
+          // let safeSdk = await SafeFactory.create({ ethAdapter });
+          const vaults: DeployedVaults = JSON.parse(
+            localStorage.getItem('vaults')
+          );
+          // 0. Switch to spend chain
+          // 1. convert ETH to WETH
+          // 2. send to vault
+          // 3. approve bridge for spending WETH
+          // 4. call deposit V3
+
+          try {
+            // from spend network
+            // const signerForSpendNetwork = signer.connect(
+            //   new ethers.JsonRpcProvider(RPC_URLS[spendNetwork])
+            // );
+
+            // @ts-expect-error
+            await window?.ethereum
+              .request({
+                method: 'wallet_switchEthereumChain',
+                params: [
+                  {
+                    // switch to ETH sepolia tesnet
+                    chainId: spendNetwork,
+                  },
+                ],
+              })
+              .then(async () => {
+                const provider = new ethers.BrowserProvider(
+                  // @ts-expect-error
+                  window?.ethereum
+                );
+
+                // set new signer with newly added network
+                const walletWithNewNetwork = await provider.getSigner();
+                // walletWithNewNetwork.connect(
+                //   new ethers.JsonRpcProvider(RPC_URLS[spendNetwork])
+                // );
+
+                ethAdapter = new EthersAdapter({
+                  ethers,
+                  signerOrProvider: walletWithNewNetwork,
+                });
+
+                const spendVaultAddress = vaults[spendNetwork].address;
+                // Safe.
+                const spendVault = await Safe.create({
+                  ethAdapter,
+                  safeAddress: spendVaultAddress,
+                });
+
+                // const sendEthToSpendingVault = await signer.sendTransaction({
+                //   to: spendVault,
+                //   value: ethers.parseUnits('0.01', 'ether'),
+                // });
+                // const sendEthToSpendingVaultTx =
+                //   await sendEthToSpendingVault.wait();
+                // if (sendEthToSpendingVaultTx.status === 1)
+                //   notifications.show({
+                //     message: 'Success sent ETH to vault!',
+                //     color: 'green',
+                //   });
+
+                console.log(`SPEND VAULT ADDRESS`, spendVaultAddress);
+                console.log(`SPEND VAULT `, spendVault);
+                console.log(`SPEND VAULT `, await spendVault.getAddress());
+
+                // we've sent ETH to vault
+                // now bundle vault txs
+                const wethOnSpendNet = WETH_ON_NETWORK[spendNetwork];
+                console.log(`weth on spend net`, wethOnSpendNet);
+
+                const safeTx = await spendVault.createTransaction({
+                  transactions: [
+                    {
+                      to: ethers.getAddress(wethOnSpendNet),
+                      // @ts-ignore
+                      value: 1000000000000000,
+                      data: '',
+                    },
+                  ],
+                });
+                const signedTx = await spendVault.signTransaction(safeTx);
+                const tx = await spendVault.executeTransaction(signedTx);
+                console.log(tx);
+                // const batchTransactions = [
+                //   {
+                //     // WRAP ETH
+                //     to: wethOnSpendNet,
+                //     // value: ethers.parseUnits('0.01', 'ether'),
+                //     value: '1000000000',
+                //     data: '',
+                //   },
+                // approve bridge for weth spend
+                // {
+                //   to: wethOnSpendNet,
+                //   value: ethers.parseUnits('0.01', 'ether'),
+                //   data: ethers.Interface.from(erc20Abi).encodeFunctionData(
+                //     'approve',
+                //     [BASE_SEPOLIA_SPOKE_POOL, ethers.MaxUint256]
+                //   ),
+                // },
+                // bridge with deposit v3
+                // ];
+
+                // console.log(batchTransactions);
+
+                // // from vault
+                // const bundledTxs = await spendVault.createTransaction({
+                //   transactions: batchTransactions,
+                //   // onlyCalls: true,
+                // });
+                // console.log(`BUNDLED DATA`, bundledTxs.data);
+
+                // {
+                //   to: BASE_SEPOLIA_SPOKE_POOL,
+                //   value: ethers.parseUnits('0.01', 'ether'),
+                //   data: new ethers.Interface(
+                //     spokePoolAbi.abi
+                // ).encodeFunctionData('depositV3', [
+                //   spendVaultAddress,
+                //   vaults[currentNetwork].address,
+                //   wethOnSpendNet,
+                //   ethers.ZeroAddress,
+                //   BigInt(1 * 10 ** 16),
+                //   BigInt(8 * 10 ** 15),
+                //   currentNetwork,
+                //   ethers.ZeroAddress,
+                //   Math.ceil(Date.now() / 1000) + 5,
+                //   Math.ceil(Date.now() / 1000) + 86_400,
+                //   0,
+                //   '',
+                // ]),
+                // },
+                // NOTE:
+                // const bridgeData = new ethers.Interface(
+                //   spokePoolAbi.abi
+                // ).encodeFunctionData('depositV3', [
+                //   spendVaultAddress,
+                //   vaults[currentNetwork].address,
+                //   wethOnSpendNet,
+                //   ethers.ZeroAddress,
+                //   BigInt(1 * 10 ** 16),
+                //   BigInt(8 * 10 ** 15),
+                //   currentNetwork,
+                //   ethers.ZeroAddress,
+                //   Math.ceil(Date.now() / 1000) + 5,
+                //   Math.ceil(Date.now() / 1000) + 86_400,
+                //   0,
+                //   '',
+                // ]);
+                // console.log(`Bridge data`, bridgeData);
+
+                // console.log(`bundled txs`, bundledTxs);
+                // const safeTx = await spendVault.executeTransaction(bundledTxs);
+
+                // console.log(`SAFE TX`, safeTx);
+              });
+          } catch (err) {
+            console.log(`ERROR reason`, err.reason);
+            console.log(`ERROR message`, err.message);
+          }
+          //
+          // const safeVault = new ethers.Contract(
+          //   vaults[spendNetwork].address,
+          //   safeVaultAbi.abi,
+          //   signer
+          // );
+          // console.log(safeVault);
+
+          // const sdk=Safe.create({ethAdapter,safeAddress:})
+          // console.log(`the vaults`, vaults);
+
+          //
+        }}
+      >
+        hello
+      </Button>
     </Box>
   );
 };

@@ -23,3 +23,27 @@ export const NETWORK_FALLBACK_HANDLERS: FallbackHandlerAddresses = {
   '0xaa36a7': "0x1905C2e279dEB69b01B6Bb8caD5Fb32509feBf94", //sepoliaFallbackHandler.address,
   '0x14a33': "0xE5148B253034Ea151c1ba0490Df431ED4c10079D", //baseSepoliaFallbackHandler.address,
 };
+
+export const addNetwork = async (chainId) => {
+  const { name, decimals, symbol, rpcUrl } = SUPPORTED_NETWORKS[chainId].token;
+
+  // @ts-expect-error
+  await window?.ethereum.request({
+    method: 'wallet_addEthereumChain',
+    params: [
+      {
+        chainName: SUPPORTED_NETWORKS[chainId].chainName,
+        chainId,
+        nativeCurrency: {
+          name,
+          decimals,
+          symbol,
+        },
+        rpcUrls: [rpcUrl],
+      },
+    ],
+  });
+};
+
+export const BASE_SEPOLIA_SPOKE_POOL =
+  '0x82B564983aE7274c86695917BBf8C99ECb6F0F8F';

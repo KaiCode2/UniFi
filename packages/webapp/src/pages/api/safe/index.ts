@@ -31,14 +31,13 @@ const handler = async (
   req: MakeSafeReq,
   res: NextApiResponse<MakeSafeResData | { error: string }>
 ) => {
-  let { address, chainIds, salt } = req.query;
-  if (req.method !== "GET") {
-    res.status(405).send({ error: "Method not allowed" });
-    return;
-  } else if (!ethers.isAddress(address)) {
-    res.status(400).send({ error: "Invalid address" });
+  let { address, chainIds, salt } = JSON.parse(req.body);
+  if (!ethers.isAddress(address)) {
+    res.status(400).send({ error: 'Invalid address' });
     return;
   }
+
+  console.log('SOME CONFIGS', address, chainIds, salt);
 
   chainIds = chainIds ?? Object.keys(SUPPORTED_NETWORKS);
   const deployerSigner = new ethers.Wallet(process.env.DEPLOYER_PKEY as string);
@@ -56,7 +55,7 @@ const handler = async (
       let safeSdk = await SafeFactory.create({ ethAdapter });
 
       const accountConfig = {
-        owners: [address],
+        owners: [address, deployerSigner.address],
         threshold: 1,
         fallbackHandler: NETWORK_FALLBACK_HANDLERS[chainId],
       };
@@ -81,7 +80,9 @@ const handler = async (
         safe: {
           address: predictedAddress,
           isModuleEnabled: isDeployed
-            ? await safeContract.isModuleEnabled(NETWORK_FALLBACK_HANDLERS[chainId])
+            ? await safeContract.isModuleEnabled(
+                NETWORK_FALLBACK_HANDLERS[chainId]
+              )
             : false,
         },
       };

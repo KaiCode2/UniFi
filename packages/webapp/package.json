@@ -7,6 +7,7 @@
     "type-check": "tsc"
   },
   "dependencies": {
+    "@across-protocol/sdk-v2": "^0.22.7",
     "@apollo/client": "^3.9.5",
     "@apollo/react-hooks": "^4.0.0",
     "@gnosis.pm/safe-apps-react-sdk": "^4.6.2",
@@ -35,10 +36,10 @@
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "tabler-icons-react": "^1.56.0",
+    "unify-contracts": "file:../contracts",
     "viem": "2.x",
     "wagmi": "^2.5.7",
-    "web3": "^4.5.0",
-    "unifi-contracts": "file:../contracts"
+    "web3": "^4.5.0"
   },
   "devDependencies": {
     "@types/node": "^12.12.21",

@@ -21,11 +21,14 @@ import theme from '../utils/theme';
 import { notifications } from '@mantine/notifications';
 import { CurrentNetworkContext } from '../Context/CurrentNetwork';
 import React from 'react';
+import { DeployedVaults } from '@/interfaces';
 
 const DeployVaultButton = () => {
   const { signer, setSigner } = useContext(SignerContext);
-
   const [loading, setLoading] = useState(false);
+  const [deployedVaults, setDeployedVaults] = useState<DeployedVaults | null>(
+    null
+  );
 
   const deployVaults = async () => {
     setLoading(true);
@@ -38,7 +41,16 @@ const DeployVaultButton = () => {
       }),
     });
     const vaultsDeployedResponse = await deploy.json();
-    if (vaultsDeployedResponse.success) {
+    console.log(`RESPONSE`, vaultsDeployedResponse);
+    if (vaultsDeployedResponse.data.success) {
+      setDeployedVaults(vaultsDeployedResponse.data);
+      // set in local storage for persisting
+      localStorage.setItem(
+        'vaults',
+        JSON.stringify(vaultsDeployedResponse.data.safes)
+      );
+      // TODO: redirect to /swap to start showing the bridge-execute functionality
+
       setLoading(false);
       return notifications.show({
         color: 'green',
@@ -48,7 +60,7 @@ const DeployVaultButton = () => {
     setLoading(false);
     return notifications.show({
       color: 'red',
-      message: vaultsDeployedResponse.error,
+      message: vaultsDeployedResponse.data.error,
     });
   };
 

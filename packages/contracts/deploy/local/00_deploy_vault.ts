@@ -20,14 +20,8 @@ const deployVault: DeployFunction = async function ({
   const {
     safeProxyFactoryAddress,
     safeMastercopyAddress,
-    omnaccountModuleAddress,
     omnaccountFallbackAddress,
   } = await deploySingletons(deployerSigner, spokePool);
-
-  await deployments.save(Constants.Contracts.OmnaccountModule, {
-    address: omnaccountModuleAddress,
-    abi: OmnaccountModule.abi,
-  });
 
   await deployments.save(Constants.Contracts.OmnaccountFallback, {
     address: omnaccountFallbackAddress,
@@ -45,15 +39,6 @@ const deployVault: DeployFunction = async function ({
   );
 
   const safe = ISafe__factory.connect(safeAddress, ownerSigner);
-
-  const isPluginModuleEnabled = await safe.isModuleEnabled(omnaccountModuleAddress);
-  if (!isPluginModuleEnabled) {
-    await execSafeTransaction(
-      safe,
-      await safe.enableModule.populateTransaction(omnaccountModuleAddress),
-      ownerSigner
-    );
-  }
 
   const isFallbackModuleEnabled = await safe.isModuleEnabled(omnaccountFallbackAddress);
   if (!isFallbackModuleEnabled) {

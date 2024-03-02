@@ -129,12 +129,12 @@ async function main() {
   // console.log("owner: ", owner, " safe owners: ", await connection.getOwners(), " safe threshold: ", await connection.getThreshold());
 
   const signature = await ownerSigner.signTypedData(dataStruct.domain, dataStruct.types, dataStruct.message);
-  console.log("Signature: ", signature);
+  console.log("Signature: ", signature, await connection.getNonce());
   // console.log(await connection.isModuleEnabled("0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99"));
 
   const bridgeData = ethers.AbiCoder.defaultAbiCoder().encode(
-    ["address[]", "bytes[]", "uint256", "bytes"],
-    [[WETH], [withdrawData], nonce, signature]
+    ["address[]", "bytes[]", "bytes"],
+    [[WETH], [withdrawData], signature]
   );
   const tx = await safe.handleV3AcrossMessage(
     WETH,
@@ -149,6 +149,8 @@ async function main() {
   receipt?.logs?.forEach((log: any) => {
     console.log(log);
   });
+
+  console.log(await connection.getNonce())
 }
 
 main().catch((error) => {

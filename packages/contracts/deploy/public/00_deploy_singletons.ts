@@ -20,20 +20,13 @@ const deployModule: DeployFunction = async function ({
     const { chainId } = await ownerSigner.provider.getNetwork()
     const { address: factoryAddress } = getSingletonFactoryInfo(Number(chainId)) as SingletonFactoryInfo
     
-    const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, spokePool, deployerSigner);
-    const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, omnaccountModuleAddress, deployerSigner);
-
-    await deployments.save(Constants.Contracts.OmnaccountModule, {
-      address: omnaccountModuleAddress,
-      abi: OmnaccountModule.abi,
-    });
+    const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, deployerSigner);
 
     await deployments.save(Constants.Contracts.OmnaccountFallback, {
       address: omnaccountFallbackAddress,
       abi: OmnaccountFallback.abi,
     });
     
-    console.log("Module deployed to:", omnaccountModuleAddress);
     console.log("Fallback deployed to:", omnaccountFallbackAddress);
 }
 deployModule.tags = ["Vault"];

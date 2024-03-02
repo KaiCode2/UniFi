@@ -1,21 +1,29 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.23;
 
+import {BasePlugin, BasePluginWithEventMetadata, PluginMetadata} from "./Base.sol";
 import {HandlerContext} from "@safe-global/safe-contracts/contracts/handler/HandlerContext.sol";
 import {CompatibilityFallbackHandler} from "@safe-global/safe-contracts/contracts/handler/CompatibilityFallbackHandler.sol";
 import {AcrossHookReceiver} from "../bridge/AcrossHookReceiver.sol";
 import {TokenFallback} from "../libraries/TokenFallback.sol";
+import {OmnaccountErrors as Errors} from "../interfaces/Errors.sol";
+import {IFallbackRegister} from "../interfaces/IFallbackRegister.sol";
 import {IFallbackRegister} from "../interfaces/IFallbackRegister.sol";
 import {ISafe} from "../interfaces/ISafe.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts-v5/utils/cryptography/MessageHashUtils.sol";
 import {ECDSA} from "@openzeppelin/contracts-v5/utils/cryptography/ECDSA.sol";
 import {IOwnerManager} from "../interfaces/IOwnerManager.sol";
 import {BytesLib} from "../libraries/BytesLib.sol";
+import {IERC165} from "@openzeppelin/contracts-v5/utils/introspection/IERC165.sol";
+import {TokenCallbackHandler} from "@safe-global/safe-contracts/contracts/handler/TokenCallbackHandler.sol";
 
 abstract contract BridgeFallbackHandler is
     CompatibilityFallbackHandler,
     HandlerContext,
-    AcrossHookReceiver
+    AcrossHookReceiver,
+    BasePluginWithEventMetadata,
+    IFallbackRegister,
+    Errors
 {
     using TokenFallback for TokenFallback.FallbackData;
     using BytesLib for bytes;
@@ -24,16 +32,21 @@ abstract contract BridgeFallbackHandler is
     //  Events
     //  ─────────────────────────────────────────────────────────────────────────────
 
+    /// @notice Emitted when tokens are bridged
     event TokensBridged(address indexed token, uint256 amount, bytes output);
+
+    /// @notice Emitted when a token fallback is set
+    event TokenFallbackAdded(address indexed safe, address indexed token, TokenFallback.FallbackData fallbackData);
+
+    /// @notice Emitted when a token fallback is removed
+    event TokenFallbackRemoved(address indexed safe, address indexed token);
 
     //  ─────────────────────────────────────────────────────────────────────────────
     //  Fields
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    /// @notice Omnaccount token bridge fallback register
-    IFallbackRegister public fallbackRegister;
-
-    // address public constant signMessageLib;
+    /// @notice Maps Safe wallet to token address to default fallback behavior
+    mapping (address safe => mapping(address token => TokenFallback.FallbackData)) public bridgeFallbacks;
 
     /// @notice EIP-712 typehash for the bridge calls
     bytes32 public constant BRIDGE_CALL_TYPEHASH =
@@ -44,12 +57,14 @@ abstract contract BridgeFallbackHandler is
     //  ─────────────────────────────────────────────────────────────────────────────
 
     constructor(
-        address _spokePool,
-        address _fallbackRegister //,
-        // address _signMessageLib
-    ) AcrossHookReceiver(_spokePool) {
-        // signMessageLib = _signMessageLib;
-        fallbackRegister = IFallbackRegister(_fallbackRegister);
+        address _spokePool
+    ) 
+        AcrossHookReceiver(_spokePool)
+        BasePluginWithEventMetadata(
+            PluginMetadata({name: "Unify Token Bridge", version: "1.0.0", requiresRootAccess: false, iconUrl: "", appUrl: ""})
+        )
+    {
+        // no-op
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -64,36 +79,28 @@ abstract contract BridgeFallbackHandler is
         ISafe safe = ISafe(msg.sender);
         // 1. Validate the message
         if (message.length == 0) {
-            // If length is 0, check for a fallback handler
-            (
-                bool exists,
-                TokenFallback.FallbackData memory fallbackData
-            ) = fallbackRegister.getFallback(address(this), token);
-            if (exists) {
+            TokenFallback.FallbackData memory fallbackData = bridgeFallbacks[address(safe)][token];
+            if (fallbackData.selector != bytes4(0x0)) {
                 (bool success, bytes memory output) = fallbackData.target.call(
-                    fallbackData.encode(token, amount)
+                    fallbackData.encode(token, amount, address(safe))
                 );
                 require(success);
                 message = output;
             }
         } else {
-            // TODO: No authorization is being checked here. Implement it
-            // Using ISafe.checkSignatures
             // If length is not 0, validate message is authorized then execute the message's calldata
-
-            // TODO: Validate nonce matches expected
             (
                 address[] memory targets,
                 bytes[] memory data,
-                uint256 nonce,
                 bytes memory signatures
-            ) = abi.decode(message, (address[], bytes[], uint256, bytes));
+            ) = abi.decode(message, (address[], bytes[], bytes));
             bytes32[] memory dataHashes = new bytes32[](data.length);
             for (uint256 i = 0; i < data.length; i++) {
                 dataHashes[i] = keccak256(data[i]);
             }
+
             bytes32 structHash = keccak256(
-                abi.encode(BRIDGE_CALL_TYPEHASH, _hashArray(targets), _hashArray(dataHashes), nonce)
+                abi.encode(BRIDGE_CALL_TYPEHASH, _hashArray(targets), _hashArray(dataHashes), safe.nonce())
             );
 
             bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(
@@ -125,6 +132,57 @@ abstract contract BridgeFallbackHandler is
 
         // 2. Execute the message's calldata
         emit TokensBridged(token, amount, message);
+    }
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  Token Fallback Management
+    //  ─────────────────────────────────────────────────────────────────────────────
+
+    /// @inheritdoc IFallbackRegister
+    function getFallback(address safe, address token) external view returns (bool exists, TokenFallback.FallbackData memory fallbackData) {
+        exists = bridgeFallbacks[safe][token].selector != bytes4(0x0);
+        if (exists) {
+            fallbackData = bridgeFallbacks[safe][token];
+        }
+    }
+
+    /// @inheritdoc IFallbackRegister
+    function setTokenFallback(address token, TokenFallback.FallbackData memory fallbackData) external {
+        ISafe safe = ISafe(msg.sender);
+
+        if (!safe.isModuleEnabled(address(this))) revert Errors.ModuleNotEnabled(address(safe));
+
+        bridgeFallbacks[address(safe)][token] = fallbackData;
+
+        emit TokenFallbackAdded(msg.sender, token, fallbackData);
+    }
+
+    /// @inheritdoc IFallbackRegister
+    function removeTokenFallback(address token) external {
+        ISafe safe = ISafe(msg.sender);
+
+        if (!safe.isModuleEnabled(address(this))) revert Errors.ModuleNotEnabled(address(safe));
+
+        delete bridgeFallbacks[address(safe)][token];
+
+        emit TokenFallbackRemoved(msg.sender, token);
+    }
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  Plugin
+    //  ─────────────────────────────────────────────────────────────────────────────
+    
+    /// @dev Requires DELEGATE_CALL permission
+    function requiresPermissions() external pure returns (uint8 permissions) {
+        return 4;
+    }
+
+    //  ─────────────────────────────────────────────────────────────────────────────
+    //  ERC-165 Support
+    //  ─────────────────────────────────────────────────────────────────────────────
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(BasePlugin, TokenCallbackHandler) returns (bool) {
+        return interfaceId == type(IFallbackRegister).interfaceId || super.supportsInterface(interfaceId);
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────

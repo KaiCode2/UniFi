@@ -12,36 +12,22 @@ export default async function deploySingletons(deployer: SignerWithAddress, spok
   const factoryAddress = await deploySingletonFactory(deployer);
   const safeMastercopyAddress = await deploySingleton(factoryAddress, Safe.bytecode, deployer);
   const safeProxyFactoryAddress = await deploySingleton(factoryAddress, SafeProxyFactory.bytecode, deployer);
-  const omnaccountModuleAddress = await deployModuleSingleton(factoryAddress, spokePool, deployer);
-  const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, omnaccountModuleAddress, deployer);
+  const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, deployer);
 
   return {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
-    omnaccountModuleAddress,
     omnaccountFallbackAddress,
   }
 }
 
-export function getOmnaccountModuleBytecode(spokePool: string) {
+export function getOmnaccountFallbackBytecode(spokePool: string) {
   const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address'], [spokePool]);
-  return OmnaccountModule.bytecode + moduleConstructor.slice(2);
-}
-
-export function getOmnaccountFallbackBytecode(spokePool: string, fallbackRegister: string) {
-  const moduleConstructor = AbiCoder.defaultAbiCoder().encode(['address', 'address'], [spokePool, fallbackRegister]);
   return OmnaccountFallback.bytecode + moduleConstructor.slice(2);
 }
 
-export async function deployModuleSingleton(factory: string, spokePool: string, deployer: SignerWithAddress) {
-  const omnaccountModuleBytecode = getOmnaccountModuleBytecode(spokePool);
-  const omnaccountModuleAddress = await deploySingleton(factory, omnaccountModuleBytecode, deployer);
-
-  return omnaccountModuleAddress;
-}
-
-export async function deployFallbackSingleton(factory: string, spokePool: string, fallbackRegister: string, deployer: SignerWithAddress) {
-  const omnaccountFallbackBytecode = getOmnaccountFallbackBytecode(spokePool, fallbackRegister);
+export async function deployFallbackSingleton(factory: string, spokePool: string, deployer: SignerWithAddress) {
+  const omnaccountFallbackBytecode = getOmnaccountFallbackBytecode(spokePool);
   const omnaccountFallbackAddress = await deploySingleton(factory, omnaccountFallbackBytecode, deployer);
 
   return omnaccountFallbackAddress;

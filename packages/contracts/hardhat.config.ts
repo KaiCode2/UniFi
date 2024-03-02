@@ -44,7 +44,8 @@ const mumbaiRpcUrl =
   "https://polygon-mumbai-pokt.nodies.app"
 
 const opSepoliaRpcUrl = process.env.OP_SEPOLIA_RPC_URL ?? "https://optimism-sepolia.blockpi.network/v1/rpc/public";
-const baseSepoliaRpcUrl = process.env.BASE_SEPOLIA_RPC_URL ?? "https://eth-sepolia.g.alchemy.com/v2/your-api-key";
+const baseSepoliaRpcUrl = process.env.BASE_SEPOLIA_RPC_URL ?? `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
+const baseGoerliRpcUrl = process.env.BASE_GOERLI_RPC_URL ?? `https://eth-goerli.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const sepoliaRpcUrl = process.env.SEPOLIA_RPC_URL ?? `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
 const arbSepoliaRpcUrl = process.env.ARB_SEPOLIA_RPC_URL ?? "https://arbitrum-sepolia.blockpi.network/v1/rpc/public";
 
@@ -127,6 +128,14 @@ const config: HardhatUserConfig = {
       deploy: ["deploy/public"],
       live: true,
     },
+    baseGoerli: {
+      url: baseGoerliRpcUrl,
+      chainId: 84531,
+      accounts,
+      saveDeployments: true,
+      deploy: ["deploy/public"],
+      live: true,
+    },
   },
   paths: {
     tests: "./test/mocha",
@@ -143,6 +152,7 @@ const config: HardhatUserConfig = {
       arbitrumSepolia: "0x7E63A5f1a8F0B4d0934B2f2327DAED3F6bb2ee75",
       opSepolia: "0x4e8E101924eDE233C13e2D8622DC8aED2872d505",
       baseSepolia: "0x82B564983aE7274c86695917BBf8C99ECb6F0F8F",
+      baseGoerli: "0x1F5AA71C79ec6a11FC55789ed32dAE3B64d75791",
     },
     entrypoint: {
       default: 8, // TODO: Update
@@ -153,6 +163,7 @@ const config: HardhatUserConfig = {
       arbitrumSepolia: "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
       opSepolia: "0x4200000000000000000000000000000000000006",
       baseSepolia: "0x4200000000000000000000000000000000000006",
+      baseGoerli: "0x4200000000000000000000000000000000000006",
     },
     relayer: 9,
   },

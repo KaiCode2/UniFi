@@ -7,7 +7,7 @@ import deploySingletons from "@/deploy/utils/deploy_singleton";
 import deploySafeProxy from "@/deploy/utils/deploy_safe_proxy";
 import {
   IERC20__factory,
-  OmnaccountFallback__factory,
+  UniFiPlugin__factory,
 } from "@/typechain-types";
 import execSafeTransaction from "@/deploy/utils/exec_transaction";
 import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces";
@@ -28,7 +28,7 @@ async function main() {
   const {
     safeProxyFactoryAddress,
     safeMastercopyAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   } = await deploySingletons(deployerSigner, spokePool);
 
   // TODO: deploy with module
@@ -37,13 +37,13 @@ async function main() {
     safeMastercopyAddress,
     owner,
     deployerSigner,
-    omnaccountFallbackAddress
+    UniFiPluginAddress
   );
   let safe: any = ISafe__factory.connect(safeAddress, ownerSigner);
 
   await execSafeTransaction(
     safe,
-    await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+    await safe.enableModule.populateTransaction(UniFiPluginAddress),
     ownerSigner
   );
 
@@ -52,7 +52,7 @@ async function main() {
   const chainId = await ownerSigner.provider
     .getNetwork()
     .then(({ chainId }) => chainId);
-  safe = OmnaccountFallback__factory.connect(safeAddress, ownerSigner);
+  safe = UniFiPlugin__factory.connect(safeAddress, ownerSigner);
 
   const multiSendAddress =
     getMultiSendDeployment({ network: chainId.toString() })

@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { deployFallbackSingleton, deployModuleSingleton } from "../utils/deploy_singleton";
 import OmnaccountModule from "@/artifacts/contracts/OmnaccountModule.sol/OmnaccountModule.json";
-import OmnaccountFallback from "@/artifacts/contracts/OmnaccountFallback.sol/OmnaccountFallback.json";
+import UniFiPlugin from "@/artifacts/contracts/UniFiPlugin.sol/UniFiPlugin.json";
 import { getSingletonFactoryInfo, SingletonFactoryInfo } from "@safe-global/safe-singleton-factory"
 import { Constants } from "@/utils";
 
@@ -20,14 +20,14 @@ const deployModule: DeployFunction = async function ({
     const { chainId } = await ownerSigner.provider.getNetwork()
     const { address: factoryAddress } = getSingletonFactoryInfo(Number(chainId)) as SingletonFactoryInfo
     
-    const omnaccountFallbackAddress = await deployFallbackSingleton(factoryAddress, spokePool, deployerSigner);
+    const UniFiPluginAddress = await deployFallbackSingleton(factoryAddress, spokePool, deployerSigner);
 
-    await deployments.save(Constants.Contracts.OmnaccountFallback, {
-      address: omnaccountFallbackAddress,
-      abi: OmnaccountFallback.abi,
+    await deployments.save(Constants.Contracts.UniFiPlugin, {
+      address: UniFiPluginAddress,
+      abi: UniFiPlugin.abi,
     });
     
-    console.log("Fallback deployed to:", omnaccountFallbackAddress);
+    console.log("Fallback deployed to:", UniFiPluginAddress);
 }
 deployModule.tags = ["Vault"];
 export default deployModule;

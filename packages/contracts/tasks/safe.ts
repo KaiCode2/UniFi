@@ -4,7 +4,7 @@ import {
   SingletonFactoryInfo,
 } from "@safe-global/safe-singleton-factory";
 import {
-  getOmnaccountFallbackBytecode,
+  getUniFiPluginBytecode,
   getOmnaccountModuleBytecode,
 } from "@/deploy/utils/deploy_singleton";
 import deploySafeProxy, {
@@ -52,31 +52,31 @@ task("safe:make", "Makes a new safe")
       let { address: omnaccountModuleAddress } = await deployments.get(
         Constants.Contracts.OmnaccountModule
       );
-      let { address: omnaccountFallbackAddress } = await deployments.get(
-        Constants.Contracts.OmnaccountFallback
+      let { address: UniFiPluginAddress } = await deployments.get(
+        Constants.Contracts.UniFiPlugin
       );
 
       const {
         safeMastercopyAddress,
         safeProxyFactoryAddress,
         omnaccountModuleAddress: predictedOmnaccountModuleAddress,
-        omnaccountFallbackAddress: predictedOmnaccountFallbackAddress,
+        UniFiPluginAddress: predictedUniFiPluginAddress,
       } = await getAddresses(factoryAddress, spokePool);
 
       omnaccountModuleAddress =
         omnaccountModuleAddress ?? predictedOmnaccountModuleAddress;
-      omnaccountFallbackAddress =
-        omnaccountFallbackAddress ?? predictedOmnaccountFallbackAddress;
+      UniFiPluginAddress =
+        UniFiPluginAddress ?? predictedUniFiPluginAddress;
 
       // TODO: Check these addresses exist
 
       console.log(`Safe mastercopy: ${safeMastercopyAddress}`);
       console.log(`Safe proxy factory: ${safeProxyFactoryAddress}`);
       console.log(`Omnaccount module: ${omnaccountModuleAddress}`);
-      console.log(`Omnaccount fallback: ${omnaccountFallbackAddress}`);
+      console.log(`Omnaccount fallback: ${UniFiPluginAddress}`);
 
       const safeAddress = calculateProxyAddress(
-        calculateInitializer(owner, omnaccountFallbackAddress),
+        calculateInitializer(owner, UniFiPluginAddress),
         safeProxyFactoryAddress,
         safeMastercopyAddress
       );
@@ -91,7 +91,7 @@ task("safe:make", "Makes a new safe")
             safeMastercopyAddress,
             owner,
             ownerSigner,
-            omnaccountFallbackAddress
+            UniFiPluginAddress
           );
           if (network.live) await delay(5_000);
         }
@@ -110,11 +110,11 @@ task("safe:make", "Makes a new safe")
         );
         if (network.live) await delay(5_000);
       }
-      if (!(await safe.isModuleEnabled(omnaccountFallbackAddress))) {
+      if (!(await safe.isModuleEnabled(UniFiPluginAddress))) {
         console.log("Enabling fallback module...");
         await execSafeTransaction(
           safe,
-          await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+          await safe.enableModule.populateTransaction(UniFiPluginAddress),
           ownerSigner
         );
         if (network.live) await delay(5_000);
@@ -496,11 +496,11 @@ async function getUserVault(signer: SignerWithAddress, spokePool: string) {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
     omnaccountModuleAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   } = await getAddresses(factoryAddress, spokePool);
 
   const safeAddress = calculateProxyAddress(
-    calculateInitializer(signer.address, omnaccountFallbackAddress),
+    calculateInitializer(signer.address, UniFiPluginAddress),
     safeProxyFactoryAddress,
     safeMastercopyAddress
   );
@@ -526,16 +526,16 @@ async function getAddresses(factory: string, spokePool: string) {
     ZeroHash,
     keccak256(getOmnaccountModuleBytecode(spokePool))
   );
-  const omnaccountFallbackAddress = getCreate2Address(
+  const UniFiPluginAddress = getCreate2Address(
     factory,
     ZeroHash,
-    keccak256(getOmnaccountFallbackBytecode(spokePool, omnaccountModuleAddress))
+    keccak256(getUniFiPluginBytecode(spokePool, omnaccountModuleAddress))
   );
 
   return {
     safeMastercopyAddress,
     safeProxyFactoryAddress,
     omnaccountModuleAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   };
 }

@@ -27,14 +27,6 @@ export const accounts = {
   passphrase: '',
 }
 
-const polygonRpcUrl =
-  process.env.POLYGON_RPC_URL ??
-  (process.env.INFURA_API_KEY ? `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}` : undefined) ??
-  (process.env.ALCHEMY_API_KEY
-    ? `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
-    : undefined) ??
-  "https://polygon-pokt.nodies.app"
-
 const mumbaiRpcUrl =
   process.env.MUMBAI_RPC_URL ??
   (process.env.INFURA_API_KEY ? `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_API_KEY}` : undefined) ??

@@ -4,7 +4,7 @@ import deploySafeProxy from "../utils/deploy_safe_proxy";
 import deploySingletons from "../utils/deploy_singleton";
 import execSafeTransaction from "../utils/exec_transaction";
 import OmnaccountModule from "@/artifacts/contracts/OmnaccountModule.sol/OmnaccountModule.json";
-import OmnaccountFallback from "@/artifacts/contracts/OmnaccountFallback.sol/OmnaccountFallback.json";
+import UniFiPlugin from "@/artifacts/contracts/UniFiPlugin.sol/UniFiPlugin.json";
 import { ISafe__factory } from "@/typechain-types/factories/contracts/interfaces/ISafe__factory";
 import { Constants } from "@/utils";
 
@@ -20,12 +20,12 @@ const deployVault: DeployFunction = async function ({
   const {
     safeProxyFactoryAddress,
     safeMastercopyAddress,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
   } = await deploySingletons(deployerSigner, spokePool);
 
-  await deployments.save(Constants.Contracts.OmnaccountFallback, {
-    address: omnaccountFallbackAddress,
-    abi: OmnaccountFallback.abi,
+  await deployments.save(Constants.Contracts.UniFiPlugin, {
+    address: UniFiPluginAddress,
+    abi: UniFiPlugin.abi,
   });
 
   // TODO: deploy with module and fallback set
@@ -34,17 +34,17 @@ const deployVault: DeployFunction = async function ({
     safeMastercopyAddress,
     owner,
     deployerSigner,
-    omnaccountFallbackAddress,
+    UniFiPluginAddress,
     // TODO: add module during creation
   );
 
   const safe = ISafe__factory.connect(safeAddress, ownerSigner);
 
-  const isFallbackModuleEnabled = await safe.isModuleEnabled(omnaccountFallbackAddress);
+  const isFallbackModuleEnabled = await safe.isModuleEnabled(UniFiPluginAddress);
   if (!isFallbackModuleEnabled) {
     await execSafeTransaction(
       safe,
-      await safe.enableModule.populateTransaction(omnaccountFallbackAddress),
+      await safe.enableModule.populateTransaction(UniFiPluginAddress),
       ownerSigner
     );
   }
@@ -53,7 +53,7 @@ const deployVault: DeployFunction = async function ({
 
   await deployments.save("ISafe", {
     address: safeAddress,
-    abi: OmnaccountFallback.abi,
+    abi: UniFiPlugin.abi,
     // linkedData: {
     //   [`${owner}_vault`]: safeAddress,
     // },

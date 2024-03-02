@@ -57,6 +57,7 @@ abstract contract BridgeFallbackHandler is CompatibilityFallbackHandler, Handler
             }
         } else {
             // TODO: No authorization is being checked here. Implement it
+            // Using ISafe.checkSignatures
             // If length is not 0, validate message is authorized then execute the message's calldata
             (address[] memory targets, bytes[] memory data) = abi.decode(message, (address[], bytes[]));
             for (uint256 i = 0; i < targets.length; i++) {

@@ -6,13 +6,13 @@ library TokenFallback {
     //  Structs
     //  ─────────────────────────────────────────────────────────────────────────────
 
-    // TODO: Rename and add docs
     struct FallbackData {
         address target;
         bytes4 selector;
-        bytes data;
-        uint96 addressIndex;
+        uint96 tokenAddressIndex;
         uint96 amountIndex;
+        uint96 vaultAddressIndex;
+        bytes data;
     }
 
     //  ─────────────────────────────────────────────────────────────────────────────
@@ -28,15 +28,15 @@ library TokenFallback {
     function encode(
         FallbackData memory self,
         address token,
-        uint256 amount
-    ) internal pure returns (bytes memory) {
-        // self.data[self.addressIndex] = bytes32(uint256(uint160(target)));
-        // TODO: Implement address and amo insertion
+        uint256 amount,
+        address vault
+    ) internal pure returns (bytes memory encodedCall) {
+        encodedCall = abi.encodeWithSelector(self.selector, self.data);
 
-        if (self.addressIndex != 0) {
+        if (self.tokenAddressIndex != 0) {
             bytes32 addressBytes = bytes32(uint256(uint160(token)));
             for (uint256 i = 0; i < 20; i++) {
-                self.data[self.addressIndex + i] = addressBytes[i];
+                self.data[self.tokenAddressIndex + i] = addressBytes[i];
             }
         }
         if (self.amountIndex != 0) {
@@ -45,7 +45,11 @@ library TokenFallback {
                 self.data[self.amountIndex + i] = amountBytes[i];
             }
         }
-
-        return abi.encodeWithSelector(self.selector, self.data);
+        if (self.vaultAddressIndex != 0) {
+            bytes32 vaultAddressBytes = bytes32(uint256(uint160(vault)));
+            for (uint256 i = 0; i < 20; i++) {
+                self.data[self.vaultAddressIndex + i] = vaultAddressBytes[i];
+            }
+        }
     }
 }

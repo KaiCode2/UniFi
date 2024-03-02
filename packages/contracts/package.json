@@ -22,6 +22,7 @@
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.4",
     "@openzeppelin/contracts-v5": "npm:@openzeppelin/contracts@5.0.1",
+    "@safe-global/protocol-kit": "^3.0.1",
     "@safe-global/safe-core-protocol": "^0.2.1-alpha.0",
     "@safe-global/safe-core-sdk-types": "^4.0.1",
     "@safe-global/safe-deployments": "^1.33.0",
@@ -41,7 +42,6 @@
   },
   "dependencies": {
     "@across-protocol/sdk-v2": "^0.22.6",
-    "@safe-global/protocol-kit": "^3.0.1",
     "@safe-global/safe-contracts": "^1.4.1-build.0",
     "dotenv": "^16.4.5"
   }

@@ -6,7 +6,7 @@ import { NETWORK_FALLBACK_HANDLERS } from "@/utils/helpers";
 import ISafeABI from "unify-contracts/artifacts/contracts/interfaces/ISafe.sol/ISafe.json";
 
 interface MakeSafeReq extends NextApiRequest {
-  body: {
+  query: {
     address: string;
     salt?: string;
     chainIds?: string[];
@@ -31,8 +31,8 @@ const handler = async (
   req: MakeSafeReq,
   res: NextApiResponse<MakeSafeResData | { error: string }>
 ) => {
-  let { address, chainIds, salt } = req.body;
-  if (req.method !== "POST") {
+  let { address, chainIds, salt } = req.query;
+  if (req.method !== "GET") {
     res.status(405).send({ error: "Method not allowed" });
     return;
   } else if (!ethers.isAddress(address)) {
@@ -58,7 +58,6 @@ const handler = async (
       const accountConfig = {
         owners: [address],
         threshold: 1,
-        // to: NETWORK_FALLBACK_HANDLERS[chainId],
         fallbackHandler: NETWORK_FALLBACK_HANDLERS[chainId],
       };
       const predictedAddress = await safeSdk.predictSafeAddress(
@@ -75,33 +74,17 @@ const handler = async (
         },
       });
 
-      if (!(await safe.isSafeDeployed())) {
-        const deployedSafe = await safeSdk.deploySafe({
-          safeAccountConfig: accountConfig,
-          saltNonce: salt,
-          options: {
-            gasLimit: 400_000,
-          },
-        });
-        return {
-          chainId,
-          safe: {
-            address: predictedAddress,
-            isModuleEnabled: await deployedSafe.isModuleEnabled(
-              NETWORK_FALLBACK_HANDLERS[chainId]
-            ),
-          },
-        };
-      } else {
-        const safeContract = new ethers.Contract(predictedAddress, ISafeABI.abi, provider);
-        return {
-          chainId,
-          safe: {
-            address: predictedAddress,
-            isModuleEnabled: await safeContract.isModuleEnabled(NETWORK_FALLBACK_HANDLERS[chainId])
-          },
-        };
-      }
+      const isDeployed = await safe.isSafeDeployed();
+      const safeContract = new ethers.Contract(predictedAddress, ISafeABI.abi, provider);
+      return {
+        chainId,
+        safe: {
+          address: predictedAddress,
+          isModuleEnabled: isDeployed
+            ? await safeContract.isModuleEnabled(NETWORK_FALLBACK_HANDLERS[chainId])
+            : false,
+        },
+      };
     })
   );
 

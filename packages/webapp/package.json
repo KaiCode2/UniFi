@@ -37,7 +37,8 @@
     "tabler-icons-react": "^1.56.0",
     "viem": "2.x",
     "wagmi": "^2.5.7",
-    "web3": "^4.5.0"
+    "web3": "^4.5.0",
+    "unify-contracts": "file:../contracts"
   },
   "devDependencies": {
     "@types/node": "^12.12.21",

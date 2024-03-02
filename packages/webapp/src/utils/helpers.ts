@@ -1,5 +1,5 @@
-import sepoliaFallbackHandler from '../../../contracts/deployments/sepolia/OmnaccountFallback.json';
-import baseSepoliaFallbackHandler from '../../../contracts/deployments/baseSepolia/OmnaccountFallback.json';
+// import sepoliaFallbackHandler from '../../../contracts/deployments/sepolia/OmnaccountFallback.json';
+// import baseSepoliaFallbackHandler from '../../../contracts/deployments/baseSepolia/OmnaccountFallback.json';
 
 export const decimalToHexChainId = (decimalChainId: number): string => {
   return '0x' + decimalChainId.toString(16);
@@ -20,6 +20,6 @@ interface FallbackHandlerAddresses {
 
 export const NETWORK_FALLBACK_HANDLERS: FallbackHandlerAddresses = {
   // ETH Sepolia
-  '0xaa36a7': sepoliaFallbackHandler.address,
-  '0x14a33': baseSepoliaFallbackHandler.address,
+  '0xaa36a7': "0x1905C2e279dEB69b01B6Bb8caD5Fb32509feBf94", //sepoliaFallbackHandler.address,
+  '0x14a33': "0xE5148B253034Ea151c1ba0490Df431ED4c10079D", //baseSepoliaFallbackHandler.address,
 };

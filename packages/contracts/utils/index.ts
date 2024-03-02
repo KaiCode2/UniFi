@@ -1,2 +1,7 @@
+import { delay } from "./delay";
+import * as Constants from "./constants";
 
-export * as Constants from "./constants";
+export {
+    delay,
+    Constants,
+};

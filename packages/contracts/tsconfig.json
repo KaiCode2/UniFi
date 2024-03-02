@@ -18,6 +18,8 @@
     "utils",
     "test",
     "tasks",
+    "scripts",
+    "deployments",
     "hardhat.config.ts"
   ]
 }

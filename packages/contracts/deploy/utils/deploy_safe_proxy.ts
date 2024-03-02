@@ -10,8 +10,21 @@ export default async function deploySafeProxy(
   mastercopy: string,
   owner: string,
   deployer: SignerWithAddress,
+  fallback?: string,
+  module?: string,
+  moduleSetup?: string
 ): Promise<string> {
-  const initializer = calculateInitializer(owner)
+  const initializer = calculateInitializer(owner, fallback, module, moduleSetup)
+
+  const proxyAddress = calculateProxyAddress(initializer, factory, mastercopy)
+
+  try {
+    const deployedCode = await deployer.provider.getCode(proxyAddress)
+    if (deployedCode !== '0x') {
+      console.log(`Safe at ${proxyAddress} already deployed`)
+      return proxyAddress
+    }
+  } catch {}
 
   const iface = new Interface(SafeProxyFactory.abi)
   await deployer.sendTransaction({
@@ -22,15 +35,15 @@ export default async function deploySafeProxy(
   return calculateProxyAddress(initializer, factory, mastercopy)
 }
 
-export function calculateInitializer(owner: string): string {
+export function calculateInitializer(owner: string, fallback?: string, module?: string, moduleSetup?: string): string {
   const iface = new Interface(Safe.abi)
 
   const initializer = iface.encodeFunctionData('setup', [
     [owner], // owners
     1, // threshold
-    ZeroAddress, // to - for setupModules
-    '0x', // data - for setupModules
-    ZeroAddress, // fallbackHandler
+    module ? module : ZeroAddress, // to - for setupModules
+    moduleSetup ? moduleSetup : '0x', // data - for setupModules
+    fallback ? fallback : ZeroAddress, // fallbackHandler
     ZeroAddress, // paymentToken
     0, // payment
     ZeroAddress, // paymentReceiver

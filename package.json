@@ -7,5 +7,23 @@
     "packages/contracts",
     "packages/webapp",
     "packages/snap"
-  ]
+  ],
+  "scripts": {
+    "start": "npx lerna run start --stream",
+    "build": "npx lerna run build --stream",
+    "test": "npx lerna run test --stream"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@lavamoat/allow-scripts": "^3.0.0",
+    "@lavamoat/preinstall-always-fail": "^2.0.0",
+    "lerna": "^8.1.2"
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "@lavamoat/preinstall-always-fail": false,
+      "ts-node>@swc/core": false,
+      "$root$": false
+    }
+  }
 }

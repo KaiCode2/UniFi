@@ -30,8 +30,6 @@ export type { IERC165 } from "./@chainlink/contracts-ccip/src/v0.8/vendor/openze
 export { IERC165__factory } from "./factories/@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.0/contracts/utils/introspection/IERC165__factory";
 export type { IERC20 } from "./@openzeppelin/contracts-v5/token/ERC20/IERC20";
 export { IERC20__factory } from "./factories/@openzeppelin/contracts-v5/token/ERC20/IERC20__factory";
-export type { Address } from "./@openzeppelin/contracts-v5/utils/Address";
-export { Address__factory } from "./factories/@openzeppelin/contracts-v5/utils/Address__factory";
 export type { ECDSA } from "./@openzeppelin/contracts-v5/utils/cryptography/ECDSA";
 export { ECDSA__factory } from "./factories/@openzeppelin/contracts-v5/utils/cryptography/ECDSA__factory";
 export type { Math } from "./@openzeppelin/contracts-v5/utils/math/Math";

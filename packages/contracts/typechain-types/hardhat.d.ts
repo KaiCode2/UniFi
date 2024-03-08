@@ -46,10 +46,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC20__factory>;
     getContractFactory(
-      name: "Address",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Address__factory>;
-    getContractFactory(
       name: "ECDSA",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ECDSA__factory>;
@@ -267,11 +263,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC20>;
     getContractAt(
-      name: "Address",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Address>;
-    getContractAt(
       name: "ECDSA",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -525,10 +516,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC20>;
     deployContract(
-      name: "Address",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Address>;
-    deployContract(
       name: "ECDSA",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ECDSA>;
@@ -745,11 +732,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC20>;
-    deployContract(
-      name: "Address",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.Address>;
     deployContract(
       name: "ECDSA",
       args: any[],

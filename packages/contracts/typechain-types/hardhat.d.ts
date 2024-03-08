@@ -186,13 +186,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ISafe__factory>;
     getContractFactory(
-      name: "UniFiPlugin",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.UniFiPlugin__factory>;
-    getContractFactory(
       name: "OmnaccountModule",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.OmnaccountModule__factory>;
+    getContractFactory(
+      name: "Relayer",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Relayer__factory>;
+    getContractFactory(
+      name: "V3SpokePoolInterface",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.V3SpokePoolInterface__factory>;
     getContractFactory(
       name: "BasePlugin",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -438,15 +442,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ISafe>;
     getContractAt(
-      name: "UniFiPlugin",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.UniFiPlugin>;
-    getContractAt(
       name: "OmnaccountModule",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.OmnaccountModule>;
+    getContractAt(
+      name: "Relayer",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Relayer>;
+    getContractAt(
+      name: "V3SpokePoolInterface",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.V3SpokePoolInterface>;
     getContractAt(
       name: "BasePlugin",
       address: string | ethers.Addressable,
@@ -656,13 +665,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ISafe>;
     deployContract(
-      name: "UniFiPlugin",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.UniFiPlugin>;
-    deployContract(
       name: "OmnaccountModule",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.OmnaccountModule>;
+    deployContract(
+      name: "Relayer",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Relayer>;
+    deployContract(
+      name: "V3SpokePoolInterface",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.V3SpokePoolInterface>;
     deployContract(
       name: "BasePlugin",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -908,15 +921,20 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ISafe>;
     deployContract(
-      name: "UniFiPlugin",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.UniFiPlugin>;
-    deployContract(
       name: "OmnaccountModule",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.OmnaccountModule>;
+    deployContract(
+      name: "Relayer",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Relayer>;
+    deployContract(
+      name: "V3SpokePoolInterface",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.V3SpokePoolInterface>;
     deployContract(
       name: "BasePlugin",
       args: any[],

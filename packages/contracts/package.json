@@ -1,6 +1,6 @@
 {
-  "name": "omnaccount-contracts",
-  "version": "1.0.0",
+  "name": "@unifi/contracts",
+  "version": "0.1.0",
   "description": "AA plugin for cross-chain spending",
   "main": "index.js",
   "license": "MIT",

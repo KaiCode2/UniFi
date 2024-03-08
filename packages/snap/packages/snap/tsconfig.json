@@ -1,7 +1,16 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./"
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "baseUrl": "./",
+    "paths": {
+      "@metamask/*": ["../../../*/src"]
+    }
   },
-  "include": ["**/*.ts"]
+  "include": ["./src/", "snap.config.ts", "./contracts/", "./scripts/**/*"],
+  "files": ["./hardhat.config.ts"]
 }

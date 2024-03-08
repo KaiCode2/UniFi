@@ -1,10 +1,10 @@
 import type { FunctionComponent, ReactNode } from 'react';
-import { useContext } from 'react';
+import React from 'react';
+import { Helmet } from 'react-helmet';
 import styled from 'styled-components';
 
-import { Footer, Header } from './components';
+import { Footer, Header, AlertBanner, AlertType } from './components';
 import { GlobalStyle } from './config/theme';
-import { ToggleThemeContext } from './Root';
 
 const Wrapper = styled.div`
   display: flex;
@@ -14,18 +14,39 @@ const Wrapper = styled.div`
   max-width: 100vw;
 `;
 
+const BannerWrapper = styled.div`
+  padding-top: 25px;
+  padding-left: 5%;
+  padding-right: 5%;
+`;
+
 export type AppProps = {
   children: ReactNode;
 };
 
 export const App: FunctionComponent<AppProps> = ({ children }) => {
-  const toggleTheme = useContext(ToggleThemeContext);
+  // Make sure we are on a browser, otherwise we can't use window.ethereum.
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
   return (
     <>
+      <Helmet>
+        <meta charSet="utf-8" />
+        <title>Account Abstraction Snap</title>
+      </Helmet>
       <GlobalStyle />
       <Wrapper>
-        <Header handleToggleClick={toggleTheme} />
+        <BannerWrapper>
+          <AlertBanner
+            title={
+              "This is a developer tool for testing purposes. Don't use it to store real assets. Use with caution."
+            }
+            alertType={AlertType.Failure}
+          />
+        </BannerWrapper>
+        <Header />
         {children}
         <Footer />
       </Wrapper>

@@ -1,12 +1,23 @@
-# TypeScript Example Snap
+# Account Abstraction Keyring Snap
 
-This snap demonstrates how to develop a snap with TypeScript. It is a simple
-snap that displays a confirmation dialog when the `hello` JSON-RPC method is
-called.
+This repository contains an account abstraction example of a keyring snap.
 
-## Testing
+Keyring snaps enable developers to enhance MetaMask by adding new account
+types. These accounts are natively supported within the extension, appearing in
+MetaMask's UI, and can be used with dapps.
 
-The snap comes with some basic tests, to demonstrate how to write tests for
-snaps. To test the snap, run `yarn test` in this directory. This will use
-[`@metamask/snaps-jest`](https://github.com/MetaMask/snaps/tree/main/packages/snaps-jest)
-to run the tests in `src/index.test.ts`.
+MetaMask Snaps is a system that allows anyone to safely expand the capabilities
+of MetaMask. A _snap_ is a program that we run in an isolated environment that
+can customize the wallet experience.
+
+# Running Locally
+
+1. `yarn install` to install the dependencies
+2. `yarn compile` to build the types for the contracts.
+3. `yarn serve` to create a local instance of the snap.
+
+# Deploying Factory Contracts
+
+Deploying the contracts will use eth from the first account of your mnemonic.
+
+1. `yarn hardhat --network <chain name specified in hardhat config> run scripts/deployFactory.ts`

@@ -1,4 +1,6 @@
-export const PoweredBy = ({ color }: { color?: string | undefined }) => (
+import React from 'react';
+
+export const PoweredBy = ({ color }: { color: string }) => (
   <svg
     width="60"
     height="12"

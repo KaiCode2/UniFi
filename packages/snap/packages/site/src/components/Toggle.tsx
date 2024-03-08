@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 type CheckedProps = {
   readonly checked: boolean;
+  readonly enabled?: boolean;
 };
 
 const ToggleWrapper = styled.div`
@@ -67,12 +68,19 @@ const UncheckedContainer = styled(IconContainer)<CheckedProps>`
   right: 10px;
 `;
 
-const ToggleContainer = styled.div`
+const ToggleContainer = styled.div<CheckedProps>`
   width: 68px;
   height: 36px;
   padding: 0;
   border-radius: 36px;
-  background-color: ${({ theme }) => theme.colors.background?.alternative};
+  background-color: ${({ checked, enabled }) => {
+    if (!enabled) {
+      return '#ddd';
+    } else if (checked) {
+      return '#0ba6ff';
+    }
+    return '#d3d3d3';
+  }};
   transition: all 0.2s ease;
 `;
 const ToggleCircle = styled.div<CheckedProps>`
@@ -84,37 +92,68 @@ const ToggleCircle = styled.div<CheckedProps>`
   height: 28px;
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.14);
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: ${({ enabled }) => (enabled ? '#ffffff' : '#eee')};
   box-sizing: border-box;
   transition: all 0.25s ease;
+`;
+
+const Label = styled.span`
+  display: inline-block;
+  margin: 0;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
 `;
 
 export const Toggle = ({
   onToggle,
   defaultChecked = false,
+  enabled = true,
+  title,
+  checkedIcon = '',
+  uncheckedIcon = '',
 }: {
-  onToggle(): void;
+  onToggle(): Promise<void>;
   defaultChecked?: boolean;
+  enabled?: boolean;
+  title?: string;
+  checkedIcon?: string;
+  uncheckedIcon?: string;
 }) => {
   const [checked, setChecked] = useState(defaultChecked);
 
-  const handleChange = () => {
-    onToggle();
+  useEffect(() => {
+    setChecked(defaultChecked);
+  }, [defaultChecked]);
+
+  const handleChange = async () => {
+    if (!enabled) {
+      return;
+    }
+    await onToggle();
     setChecked(!checked);
   };
 
   return (
-    <ToggleWrapper onClick={handleChange}>
-      <ToggleContainer>
-        <CheckedContainer checked={checked}>
-          <span>🌞</span>
-        </CheckedContainer>
-        <UncheckedContainer checked={checked}>
-          <span>🌜</span>
-        </UncheckedContainer>
-      </ToggleContainer>
-      <ToggleCircle checked={checked} />
-      <ToggleInput type="checkbox" aria-label="Toggle Button" />
-    </ToggleWrapper>
+    <div>
+      <ToggleWrapper
+        onClick={() => {
+          handleChange().catch(console.error);
+        }}
+        data-testid="use-sync-flow-toggle"
+      >
+        <ToggleContainer checked={checked} enabled={enabled}>
+          <CheckedContainer checked={checked}>
+            <span>{checkedIcon}</span>
+          </CheckedContainer>
+          <UncheckedContainer checked={checked}>
+            <span>{uncheckedIcon}</span>
+          </UncheckedContainer>
+        </ToggleContainer>
+        <ToggleCircle checked={checked} enabled={enabled} />
+        <ToggleInput type="checkbox" aria-label="Toggle Button" />
+      </ToggleWrapper>
+      <Label>{title}</Label>
+    </div>
   );
 };

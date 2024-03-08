@@ -1,10 +1,6 @@
-export const SnapLogo = ({
-  color,
-  size,
-}: {
-  color?: string | undefined;
-  size: number;
-}) => (
+import React from 'react';
+
+export const SnapLogo = ({ color, size }: { color: string; size: number }) => (
   <svg
     width={size}
     height={size}

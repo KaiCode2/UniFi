@@ -1,36 +1,93 @@
-import type { OnRpcRequestHandler } from '@metamask/snaps-sdk';
-import { panel, text } from '@metamask/snaps-sdk';
+import {
+  MethodNotSupportedError,
+  handleKeyringRequest,
+} from '@metamask/keyring-api';
+import type {
+  OnKeyringRequestHandler,
+  OnRpcRequestHandler,
+} from '@metamask/snaps-sdk';
+
+import type { ChainConfig } from './keyring';
+import { AccountAbstractionKeyring } from './keyring';
+import { logger } from './logger';
+import { InternalMethod, originPermissions } from './permissions';
+import { getState } from './stateManagement';
+
+let keyring: AccountAbstractionKeyring;
 
 /**
- * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
- *
- * @param args - The request handler args as object.
- * @param args.origin - The origin of the request, e.g., the website that
- * invoked the snap.
- * @param args.request - A validated JSON-RPC request object.
- * @returns The result of `snap_dialog`.
- * @throws If the request method is not valid for this snap.
+ * Return the keyring instance. If it doesn't exist, create it.
  */
+async function getKeyring(): Promise<AccountAbstractionKeyring> {
+  if (!keyring) {
+    const state = await getState();
+    if (!keyring) {
+      keyring = new AccountAbstractionKeyring(state);
+    }
+  }
+  return keyring;
+}
+
+/**
+ * Verify if the caller can call the requested method.
+ *
+ * @param origin - Caller origin.
+ * @param method - Method being called.
+ * @returns True if the caller is allowed to call the method, false otherwise.
+ */
+function hasPermission(origin: string, method: string): boolean {
+  return originPermissions.get(origin)?.includes(method) ?? false;
+}
+
 export const onRpcRequest: OnRpcRequestHandler = async ({
   origin,
   request,
 }) => {
-  switch (request.method) {
-    case 'hello':
-      return snap.request({
-        method: 'snap_dialog',
-        params: {
-          type: 'confirmation',
-          content: panel([
-            text(`Hello, **${origin}**!`),
-            text('This custom confirmation is just for display purposes.'),
-            text(
-              'But you can edit the snap source code to make it do something, if you want to!',
-            ),
-          ]),
-        },
-      });
-    default:
-      throw new Error('Method not found.');
+  logger.debug(
+    `RPC request (origin="${origin}"):`,
+    JSON.stringify(request, undefined, 2),
+  );
+
+  // Check if origin is allowed to call method.
+  if (!hasPermission(origin, request.method)) {
+    throw new Error(
+      `Origin '${origin}' is not allowed to call '${request.method}'`,
+    );
   }
+
+  // Handle custom methods.
+  switch (request.method) {
+    case InternalMethod.SetConfig: {
+      if (!request.params?.length) {
+        throw new Error('Missing config');
+      }
+      return (await getKeyring()).setConfig(request.params as ChainConfig);
+    }
+
+    default: {
+      throw new MethodNotSupportedError(request.method);
+    }
+  }
+};
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore TODO: fix types
+export const onKeyringRequest: OnKeyringRequestHandler = async ({
+  origin,
+  request,
+}) => {
+  logger.debug(
+    `Keyring request (origin="${origin}"):`,
+    JSON.stringify(request, undefined, 2),
+  );
+
+  // Check if origin is allowed to call method.
+  if (!hasPermission(origin, request.method)) {
+    throw new Error(
+      `Origin '${origin}' is not allowed to call '${request.method}'`,
+    );
+  }
+
+  // Handle keyring methods.
+  return handleKeyringRequest(await getKeyring(), request);
 };

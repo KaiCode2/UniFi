@@ -1,4 +1,6 @@
-export const MetaMask = ({ color }: { color?: string | undefined }) => (
+import React from 'react';
+
+export const MetaMask = ({ color }: { color: string }) => (
   <svg
     width="98"
     height="12"

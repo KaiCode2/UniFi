@@ -1,29 +1,60 @@
-import type { MetaMaskInpageProvider } from '@metamask/providers';
-import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import type { Dispatch, ReactNode, Reducer } from 'react';
+import React, { createContext, useEffect, useReducer } from 'react';
 
 import type { Snap } from '../types';
-import { getSnapsProvider } from '../utils';
+import { hasMetaMask, getSnap } from '../utils';
 
-type MetaMaskContextType = {
-  provider: MetaMaskInpageProvider | null;
-  installedSnap: Snap | null;
-  error: Error | null;
-  setInstalledSnap: (snap: Snap | null) => void;
-  setError: (error: Error) => void;
+export type MetamaskState = {
+  hasMetaMask: boolean;
+  installedSnap?: Snap;
+  error?: Error;
 };
 
-export const MetaMaskContext = createContext<MetaMaskContextType>({
-  provider: null,
-  installedSnap: null,
-  error: null,
-  setInstalledSnap: () => {
-    /* no-op */
+const initialState: MetamaskState = {
+  hasMetaMask: false,
+};
+
+type MetamaskDispatch = { type: MetamaskActions; payload: any };
+
+export const MetaMaskContext = createContext<
+  [MetamaskState, Dispatch<MetamaskDispatch>]
+>([
+  initialState,
+  () => {
+    /* no op */
   },
-  setError: () => {
-    /* no-op */
-  },
-});
+]);
+
+export enum MetamaskActions {
+  SetInstalled = 'SetInstalled',
+  SetMetaMaskDetected = 'SetMetaMaskDetected',
+  SetError = 'SetError',
+}
+
+const reducer: Reducer<MetamaskState, MetamaskDispatch> = (state, action) => {
+  switch (action.type) {
+    case MetamaskActions.SetInstalled:
+      return {
+        ...state,
+        installedSnap: action.payload,
+      };
+
+    case MetamaskActions.SetMetaMaskDetected:
+      return {
+        ...state,
+        hasMetaMask: action.payload,
+      };
+
+    case MetamaskActions.SetError:
+      return {
+        ...state,
+        error: action.payload,
+      };
+
+    default:
+      return state;
+  }
+};
 
 /**
  * MetaMask context provider to handle MetaMask and snap status.
@@ -33,42 +64,69 @@ export const MetaMaskContext = createContext<MetaMaskContextType>({
  * @returns JSX.
  */
 export const MetaMaskProvider = ({ children }: { children: ReactNode }) => {
-  const [provider, setProvider] = useState<MetaMaskInpageProvider | null>(null);
-  const [installedSnap, setInstalledSnap] = useState<Snap | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  if (typeof window === 'undefined') {
+    return <>{children}</>;
+  }
+
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    getSnapsProvider().then(setProvider).catch(console.error);
-  }, []);
+    const detectInstallation = async () => {
+      /**
+       * Detect if MetaMask is installed.
+       */
+      async function detectMetaMask() {
+        const isMetaMaskDetected = await hasMetaMask();
+
+        dispatch({
+          type: MetamaskActions.SetMetaMaskDetected,
+          payload: isMetaMaskDetected,
+        });
+      }
+
+      /**
+       * Detect if the snap is installed.
+       */
+      async function detectSnapInstalled() {
+        const installedSnap = await getSnap();
+        dispatch({
+          type: MetamaskActions.SetInstalled,
+          payload: installedSnap,
+        });
+      }
+
+      await detectMetaMask();
+
+      if (state.hasMetaMask) {
+        await detectSnapInstalled();
+      }
+    };
+
+    detectInstallation().catch(console.error);
+  }, [state.hasMetaMask, window.ethereum]);
 
   useEffect(() => {
-    if (error) {
-      const timeout = setTimeout(() => {
-        setError(null);
+    let timeoutId: number;
+
+    if (state.error) {
+      timeoutId = window.setTimeout(() => {
+        dispatch({
+          type: MetamaskActions.SetError,
+          payload: undefined,
+        });
       }, 10000);
-
-      return () => {
-        clearTimeout(timeout);
-      };
     }
 
-    return undefined;
-  }, [error]);
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [state.error]);
 
   return (
-    <MetaMaskContext.Provider
-      value={{ provider, error, setError, installedSnap, setInstalledSnap }}
-    >
+    <MetaMaskContext.Provider value={[state, dispatch]}>
       {children}
     </MetaMaskContext.Provider>
   );
 };
-
-/**
- * Utility hook to consume the MetaMask context.
- *
- * @returns The MetaMask context.
- */
-export function useMetaMaskContext() {
-  return useContext(MetaMaskContext);
-}

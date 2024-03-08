@@ -1,7 +1,7 @@
 import type { DefaultTheme } from 'styled-components';
 import { createGlobalStyle } from 'styled-components';
 
-const breakpoints = ['600px', '768px', '992px'];
+const breakpoints = ['600px', '768px', '992px'] as const;
 
 /**
  * Common theme properties.
@@ -24,11 +24,11 @@ const theme = {
     default: '24px',
     button: '8px',
   },
-  breakpoints,
+  breakpoints: [...breakpoints],
   mediaQueries: {
-    small: `@media screen and (max-width: ${breakpoints[0] as string})`,
-    medium: `@media screen and (min-width: ${breakpoints[1] as string})`,
-    large: `@media screen and (min-width: ${breakpoints[2] as string})`,
+    small: `@media screen and (max-width: ${breakpoints[0]})`,
+    medium: `@media screen and (min-width: ${breakpoints[1]})`,
+    large: `@media screen and (min-width: ${breakpoints[2]})`,
   },
   shadows: {
     default: '0px 7px 42px rgba(0, 0, 0, 0.1)',

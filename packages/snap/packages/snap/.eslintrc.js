@@ -1,23 +1,22 @@
 module.exports = {
   extends: ['../../.eslintrc.js'],
 
-  parserOptions: {
-    tsconfigRootDir: __dirname,
-  },
-
   overrides: [
     {
-      files: ['snap.config.ts'],
-      extends: ['@metamask/eslint-config-nodejs'],
-    },
-
-    {
-      files: ['*.test.ts'],
+      files: ['*.ts'],
+      extends: ['@metamask/eslint-config-typescript'],
       rules: {
-        '@typescript-eslint/unbound-method': 'off',
+        'import/no-nodejs-modules': ['error', { allow: ['buffer', 'crypto'] }],
       },
     },
   ],
 
-  ignorePatterns: ['!.eslintrc.js', 'dist/'],
+  ignorePatterns: [
+    '!.eslintrc.js',
+    'dist/',
+    'contracts/',
+    'coverage/',
+    'cache/',
+    'artifacts/',
+  ],
 };

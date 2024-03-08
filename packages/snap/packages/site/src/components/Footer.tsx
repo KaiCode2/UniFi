@@ -1,8 +1,9 @@
+import React from 'react';
 import styled, { useTheme } from 'styled-components';
 
-import { ReactComponent as MetaMaskFox } from '../assets/metamask_fox.svg';
 import { MetaMask } from './MetaMask';
 import { PoweredBy } from './PoweredBy';
+import { ReactComponent as MetaMaskFox } from '../assets/metamask_fox.svg';
 
 const FooterWrapper = styled.footer`
   display: flex;
@@ -39,8 +40,8 @@ export const Footer = () => {
       <PoweredByButton href="https://docs.metamask.io/" target="_blank">
         <MetaMaskFox />
         <PoweredByContainer>
-          <PoweredBy color={theme.colors.text?.muted} />
-          <MetaMask color={theme.colors.text?.default} />
+          <PoweredBy color={theme.colors.text?.muted ?? '#6A737D'} />
+          <MetaMask color={theme.colors.text?.default ?? '#24272A'} />
         </PoweredByContainer>
       </PoweredByButton>
     </FooterWrapper>

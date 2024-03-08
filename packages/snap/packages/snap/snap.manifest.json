@@ -1,27 +1,36 @@
 {
   "version": "0.1.0",
-  "description": "An example Snap written in TypeScript.",
-  "proposedName": "TypeScript Example",
+  "description": "An account abstraction keyring snap that integrates with MetaMask accounts.",
+  "proposedName": "MetaMask Account Abstraction Snap Keyring",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MetaMask/template-snap-monorepo.git"
+    "url": "git+https://github.com/MetaMask/snap-account-abstraction-keyring.git"
   },
   "source": {
-    "shasum": "IDJbgvxdldF3mhNUY3XwGVNnFcVtN7heeNV36SsSjq4=",
+    "shasum": "hkCm7ZYYdEKquDhNypcVFYsZsZyniaqdN6k3aEOYgO8=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
-        "packageName": "snap",
+        "iconPath": "images/icon.svg",
+        "packageName": "@unifi/snap",
         "registry": "https://registry.npmjs.org/"
       }
     }
   },
   "initialPermissions": {
-    "snap_dialog": {},
+    "endowment:keyring": {
+      "allowedOrigins": [
+        "https://metamask.github.io",
+        "http://localhost:8000"
+      ]
+    },
     "endowment:rpc": {
-      "dapps": true,
-      "snaps": false
-    }
+      "dapps": true
+    },
+    "snap_manageAccounts": {},
+    "snap_manageState": {},
+    "endowment:ethereum-provider": {},
+    "endowment:network-access": {}
   },
   "manifestVersion": "0.1"
 }

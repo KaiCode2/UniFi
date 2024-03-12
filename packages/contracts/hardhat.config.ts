@@ -8,7 +8,6 @@ import "@nomicfoundation/hardhat-network-helpers";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
-import "hardhat-tracer";
 import "tsconfig-paths/register";
 
 dotenv.config();
@@ -174,9 +173,6 @@ const config: HardhatUserConfig = {
     target: "ethers-v6",
     outDir: "./typechain-types",
   },
-  tracer: {
-    // tasks: ["tasks", "scripts", "deploy"],
-  }
 };
 
 function deterministicDeployment(network: string): DeterministicDeploymentInfo {

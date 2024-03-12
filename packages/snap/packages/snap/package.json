@@ -1,5 +1,5 @@
 {
-  "name": "@unifi/snap",
+  "name": "@unifi/snap-plugin",
   "version": "0.1.0",
   "description": "An account abstraction keyring snap that integrates UniFi plugin with MetaMask accounts.",
   "keywords": [
@@ -26,7 +26,7 @@
     "snap.manifest.json"
   ],
   "scripts": {
-    "allow-scripts": "yarn workspace @unifi/snap allow-scripts",
+    "allow-scripts": "yarn workspace @unifi/snap-plugin allow-scripts",
     "compile": "hardhat compile",
     "build": "mm-snap build",
     "build:clean": "yarn clean && yarn build",

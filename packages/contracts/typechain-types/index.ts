@@ -92,10 +92,10 @@ export type { IFallbackRegister } from "./contracts/interfaces/IFallbackRegister
 export { IFallbackRegister__factory } from "./factories/contracts/interfaces/IFallbackRegister__factory";
 export type { IOwnerManager } from "./contracts/interfaces/IOwnerManager";
 export { IOwnerManager__factory } from "./factories/contracts/interfaces/IOwnerManager__factory";
-export type { UniFiPlugin } from "./contracts/OmnaccountFallback.sol/UniFiPlugin";
-export { UniFiPlugin__factory } from "./factories/contracts/OmnaccountFallback.sol/UniFiPlugin__factory";
 export type { OmnaccountModule } from "./contracts/OmnaccountModule";
 export { OmnaccountModule__factory } from "./factories/contracts/OmnaccountModule__factory";
+export type { Relayer } from "./contracts/Relayer.sol/Relayer";
+export { Relayer__factory } from "./factories/contracts/Relayer.sol/Relayer__factory";
 export type { BasePlugin } from "./contracts/safe/Base.sol/BasePlugin";
 export { BasePlugin__factory } from "./factories/contracts/safe/Base.sol/BasePlugin__factory";
 export type { BasePluginWithEventMetadata } from "./contracts/safe/Base.sol/BasePluginWithEventMetadata";
@@ -108,3 +108,5 @@ export type { BaseModule } from "./contracts/safe/BaseModule";
 export { BaseModule__factory } from "./factories/contracts/safe/BaseModule__factory";
 export type { BridgeFallbackHandler } from "./contracts/safe/BridgeFallbackHandler";
 export { BridgeFallbackHandler__factory } from "./factories/contracts/safe/BridgeFallbackHandler__factory";
+export type { UniFiPlugin } from "./contracts/UniFiPlugin";
+export { UniFiPlugin__factory } from "./factories/contracts/UniFiPlugin__factory";

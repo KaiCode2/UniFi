@@ -1,0 +1,61 @@
+version: '3.9'
+services:
+  webapp:
+    container_name: unifi-webapp
+    image: unifi:webapp-latest
+    build:
+      dockerfile: './packages/webapp/Dockerfile'
+    env_file:
+      - env/${ENVIRONMENT:-development}.env
+    ports:
+      - '3000:3000'
+
+  relayer:
+    container_name: unifi-relayer
+    image: unifi:relayer-latest
+    build:
+      dockerfile: './packages/relayer-v2/Dockerfile'
+    env_file:
+      - env/${ENVIRONMENT:-development}.env
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./packages/relayer-v2:/app
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  contracts:
+    container_name: unifi-contracts
+    image: unifi:contracts-latest
+    build:
+      dockerfile: './packages/contracts/Dockerfile'
+    env_file:
+      - env/${ENVIRONMENT:-development}.env
+    volumes:
+      - ./packages/contracts:/app
+    restart: unless-stopped
+    ports:
+      - '8545:8545'
+    networks:
+      - unifi-local
+
+  redis:
+    container_name: unifi-relayer-redis
+    image: 'bitnami/redis:latest'
+    env_file:
+      - env/${ENVIRONMENT:-development}.env
+    volumes:
+      - /tmp/data/redis:/data
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  unifi-local:
+    name: unifi-local

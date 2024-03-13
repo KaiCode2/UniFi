@@ -4,3 +4,6 @@
 [submodule "packages/contracts/lib/forge-std"]
 	path = packages/contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "packages/relayer-v2"]
+	path = packages/relayer-v2
+	url = https://github.com/across-protocol/relayer-v2.git

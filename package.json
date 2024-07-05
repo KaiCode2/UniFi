@@ -1,5 +1,28 @@
 {
-  "dependencies": {
-    "@across-protocol/sdk-v2": "^0.22.6"
+  "private": true,
+  "version": "0.1.0",
+  "homepage": "https://unifi.eggtech.io/",
+  "license": "MIT",
+  "workspaces": [
+    "packages/contracts",
+    "packages/webapp"
+  ],
+  "scripts": {
+    "start": "npx lerna run start --stream",
+    "build": "npx lerna run build --stream",
+    "test": "npx lerna run test --stream"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@lavamoat/allow-scripts": "^3.0.0",
+    "@lavamoat/preinstall-always-fail": "^2.0.0",
+    "lerna": "^8.1.2"
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "@lavamoat/preinstall-always-fail": false,
+      "ts-node>@swc/core": false,
+      "$root$": false
+    }
   }
 }

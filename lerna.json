@@ -1,0 +1,10 @@
+{
+  "version": "0.1.0",
+  "packages": ["packages/*"],
+  "npmClient": "yarn",
+  "scripts": {
+    "build": "npx lerna run build --stream",
+    "start": "npx lerna run start --stream",
+    "test": "npx lerna run test --stream"
+  }
+}
